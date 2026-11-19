@@ -1,0 +1,48 @@
+# Build output
+/build/
+/out/
+/install/
+compile_commands.json
+CMakeUserPresets.json
+
+# IDE/project files
+.vs/
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.xcodeproj/
+*.code-workspace
+
+# Binaries and artifacts
+*.exe
+*.dll
+*.lib
+*.so
+*.a
+*.pdb
+*.ilk
+*.obj
+*.dSYM/
+*.zip
+*.tar.gz
+
+# Diagnostics
+*.dmp
+*.log
+# Benchmark logs are evidence and are committed; other logs are not.
+!benchmarks/results/**/*.log
+# Core dumps only, never source directories named "core".
+/core
+vgcore.*
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment/secrets (never commit these)
+.env
+.dev.vars

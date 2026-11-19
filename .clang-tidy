@@ -1,0 +1,21 @@
+# Deliberately conservative. The goal is to catch real bugs, not to enforce
+# style (clang-format does that). New checks are added only when the codebase
+# is clean under them.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-emplace,
+  readability-braces-around-statements,
+  readability-const-return-type,
+  readability-container-size-empty,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -performance-enum-size
+WarningsAsErrors: ''
+HeaderFilterRegex: 'engine/(core|public)/.*'
+FormatStyle: file
+CheckOptions:
+  readability-braces-around-statements.ShortStatementLines: '1'

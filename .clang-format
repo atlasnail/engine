@@ -1,0 +1,24 @@
+# Formatting is enforced (tools/check_format.py). Pin the clang-format version
+# in CI and locally; different major versions format differently.
+BasedOnStyle: LLVM
+Standard: c++20
+IndentWidth: 4
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+ColumnLimit: 100
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBraces: Attach
+FixNamespaceComments: true
+IndentCaseLabels: false
+InsertNewlineAtEOF: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+NamespaceIndentation: None
+SortIncludes: CaseSensitive
+SpacesBeforeTrailingComments: 2
+UseTab: Never

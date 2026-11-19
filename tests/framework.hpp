@@ -1,0 +1,73 @@
+#pragma once
+
+// Minimal test harness.
+//
+// Why not a third-party framework: the engine needs tests that build with zero
+// dependencies on every platform and are obvious to read. This provides exactly
+// what the unit tests need: named cases, CHECK/REQUIRE, filtering, a summary
+// and an exit code. If fixtures or parameterized tests become necessary, add
+// them here deliberately (and record an ADR) rather than pulling in a framework.
+
+#include <cstdio>
+#include <cstring>
+#include <vector>
+
+namespace engtest {
+
+using TestFn = void (*)();
+
+struct TestCase {
+    const char* name;
+    TestFn fn;
+};
+
+inline std::vector<TestCase>& registry() {
+    static std::vector<TestCase> cases;
+    return cases;
+}
+
+inline int& failure_count() {
+    static int failures = 0;
+    return failures;
+}
+
+inline int& check_count() {
+    static int checks = 0;
+    return checks;
+}
+
+struct Registrar {
+    Registrar(const char* name, TestFn fn) { registry().push_back(TestCase{name, fn}); }
+};
+
+int run_all(int argc, char** argv);
+
+inline void report_failure(const char* file, int line, const char* expression) {
+    ++failure_count();
+    std::fprintf(stderr, "    FAILED %s:%d: %s\n", file, line, expression);
+}
+
+}  // namespace engtest
+
+#define TEST_CASE(identifier)                                                                      \
+    static void engtest_case_##identifier();                                                       \
+    static ::engtest::Registrar engtest_registrar_##identifier(#identifier,                        \
+                                                               engtest_case_##identifier);         \
+    static void engtest_case_##identifier()
+
+#define CHECK(expression)                                                                          \
+    do {                                                                                           \
+        ++::engtest::check_count();                                                                \
+        if (!(expression)) {                                                                       \
+            ::engtest::report_failure(__FILE__, __LINE__, #expression);                            \
+        }                                                                                          \
+    } while (0)
+
+#define REQUIRE(expression)                                                                        \
+    do {                                                                                           \
+        ++::engtest::check_count();                                                                \
+        if (!(expression)) {                                                                       \
+            ::engtest::report_failure(__FILE__, __LINE__, #expression);                            \
+            return;                                                                                \
+        }                                                                                          \
+    } while (0)
