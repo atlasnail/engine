@@ -37,7 +37,7 @@ jobs:
         run: bash tools/dev/ci_configure.sh windows-debug
 
       - name: Build (Debug)
-        run: cmake --build --preset windows-debug
+        run: bash tools/dev/ci_build.sh windows-debug
 
       - name: Test (Debug)
         run: ctest --preset windows-debug
@@ -46,7 +46,7 @@ jobs:
         run: bash tools/dev/ci_configure.sh windows-release
 
       - name: Build (Release)
-        run: cmake --build --preset windows-release
+        run: bash tools/dev/ci_build.sh windows-release
 
       - name: Test (Release)
         run: ctest --preset windows-release
@@ -81,7 +81,7 @@ jobs:
         run: bash tools/dev/ci_configure.sh linux-debug
 
       - name: Build (Debug)
-        run: cmake --build --preset linux-debug
+        run: bash tools/dev/ci_build.sh linux-debug
 
       - name: Test (Debug)
         run: ctest --preset linux-debug
@@ -90,7 +90,7 @@ jobs:
         run: bash tools/dev/ci_configure.sh linux-asan
 
       - name: Build (ASan + UBSan)
-        run: cmake --build --preset linux-asan
+        run: bash tools/dev/ci_build.sh linux-asan
 
       - name: Test (ASan + UBSan)
         run: ctest --preset linux-asan
@@ -99,7 +99,7 @@ jobs:
         run: bash tools/dev/ci_configure.sh linux-release
 
       - name: Build (Release)
-        run: cmake --build --preset linux-release
+        run: bash tools/dev/ci_build.sh linux-release
 
       - name: Test (Release)
         run: ctest --preset linux-release
