@@ -36,6 +36,8 @@ releases may contain breaking changes, and they are always described below.
 
 ### Fixed
 
+- Linux CI: added the XTest headers SDL requires, and replaced the whole-file
+  read that tripped a GCC 13 null-dereference false positive at -O3.
 - Action edges were lost when a frame ran no fixed update and repeated when a
   frame ran several. Button changes are now queued and delivered one per fixed
   update, in order. Gamepad buttons are event-driven, so quick taps are no

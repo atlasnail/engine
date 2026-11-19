@@ -38,9 +38,9 @@ There is **no way to draw a game yet**. No sprites, no textures, no text font,
 no sound. That is the next big chunk of work. Right now the only thing that can
 draw is the debug readout.
 
-Windows is the only platform that has actually been built and tested. The Linux
-build files exist and there is a CI job for them, but nobody has run it yet, so
-do not treat Linux as working until that happens.
+Windows is where the work has been done by hand. Linux now builds and passes its
+tests in GitHub Actions, but only with a fake display driver, so nobody has yet
+opened a window or used a controller on a real Linux desktop.
 
 ## Building it
 
@@ -78,8 +78,9 @@ cmake --build --preset linux-debug
 ctest --preset linux-debug
 ```
 
-This has not been run yet. If it fails, the details are probably in
-`docs/status.md` under known issues.
+This is what CI runs on Ubuntu. On a desktop you also need the SDL development
+packages listed in `third_party/README.md`; the XTest ones are required, not
+optional. Exact problems found so far are in `docs/status.md`.
 
 ### Where the programs end up
 

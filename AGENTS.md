@@ -63,7 +63,8 @@ Target structure; create directories only when a milestone needs them.
 ## 5. Build and test commands
 
 These are verified on Windows (MSVC 19.52; M0 also built with Clang 22.1.3) and
-defined for Linux; Linux has not run on this machine yet (see `docs/status.md`).
+in CI on Linux (GCC 13, Debug/Release/ASan). Linux has not run on this local
+machine; see `docs/status.md` for what is actually verified.
 
 **Windows, Developer PowerShell for VS 2026:**
 

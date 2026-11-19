@@ -6,16 +6,16 @@ Last updated: 2026-11-19
 
 ## Current position
 
-- **M0 is not complete:** Windows builds and tests exist, but Linux has never
-  been verified, CI has not run, and several roadmap quality gates remain open
-  (including Linux sanitizers, required CI enforcement and a pinned GL loader).
+- **M0 is close but not signed off:** Windows and Linux now build and test in
+  CI (Debug, Release, ASan/UBSan on Linux), but the pinned GL loader gate and
+  required (non-advisory) clang-tidy enforcement are still open.
 - **M1 is in progress:** platform work was started before M0's gates were met.
   This is not an approval to declare M0 or M1 complete, or to start M2.
 - Version `0.1.0-dev`; implementation: core and SDL3 platform, tests and
   `bench_blank`. No game renderer or audio.
-- `main` is pushed to `https://github.com/atlasnail/engine.git`; the M1 review
-  commit is local until pushed. Linux presets/CI are configured but have never
-  been run.
+- `main` is pushed to `https://github.com/atlasnail/engine.git`. Linux CI has
+  run and passes; it uses SDL's dummy video driver, so no real display, GPU or
+  gamepad has been exercised on Linux.
 
 ## Latest session: input delivery and stats display
 
@@ -46,11 +46,16 @@ Last updated: 2026-11-19
 
 ## Verification
 
-- Windows MSVC Debug: build clean, CTest `eng_tests` and `eng_platform_tests`
-  pass, including the new input and stats tests. Formatting check passes.
-- Not verified: Linux, real controller hardware, real Clang build this session,
-  sanitizers, CRT leak gate, visible-window appearance of the stats readout,
-  and any Tier A performance gate.
+- **CI run 44588973457 on `0423ad0` is green.** Windows (MSVC): format, Debug
+  build/tests, Release build/tests. Linux (GCC 13, `ubuntu-24.04`): format,
+  Debug build/tests, ASan+UBSan build/tests, Release build/tests, advisory tidy.
+  Linux tests run with `SDL_VIDEODRIVER=dummy`; window tests that need a real
+  driver still skip.
+- Windows MSVC Debug locally: build clean and CTest passes, including the new
+  input, stats and file-system tests.
+- Not verified: real Linux desktop (X11/Wayland) behavior, real controller
+  hardware, a current local Clang build, CRT leak gate, visible-window
+  appearance of the stats readout, and any Tier A performance gate.
 - Release benchmark from the previous session (overlay, file log and actions
   disabled): `dev-01` paced p99 17.491 ms, 58.9 FPS, 0 dropped steps, 4.5 MB
   exit private bytes. One short run, not a gate; see
@@ -60,10 +65,10 @@ Last updated: 2026-11-19
 
 ## Open gates and known limitations
 
-1. GitHub CI has not run. Verify Windows and Linux, including sanitizer and
-   format jobs, on the pushed revision.
-2. M0 exit criteria remain unmet: fresh Linux build/tests, sanitizer/leak
-   checks, complete CI enforcement (tidy is advisory), and the GL loader pin.
+1. M0 exit criteria remain unmet: complete CI enforcement (clang-tidy is still
+   advisory) and the GL loader pin.
+2. Linux is verified only headless. X11/Wayland window behavior, DPI, fullscreen
+   and focus handling on a real desktop are untested.
 3. M1 parity and hardware tests are incomplete: real gamepad, visible window,
    fullscreen, focus, DPI/minimize behavior, Linux display drivers, shutdown.
    Window tests skip when no video driver is available.
@@ -86,11 +91,22 @@ Last updated: 2026-11-19
 
 ## Next steps
 
-- Watch the first CI run and fix what it reports, without treating a configured
-  workflow as a pass.
-- Finish M0's quality gates, then the remaining M1 gates: visible-window checks,
-  real gamepad, minimized behavior, and a real CPU-time measurement.
+- Finish M0's quality gates: make clang-tidy blocking once it has stayed green,
+  and pin the OpenGL loader before M2 needs it.
+- Remaining M1 gates: visible-window checks on both platforms, real gamepad,
+  minimized behavior, and a real CPU-time measurement.
 - Do not start the renderer (M2) or add store SDKs until sequencing is agreed.
+
+## CI fixes found by the first Linux run
+
+- SDL 3.4.20 treats XTest as required with X11; `libxtst-dev` was missing, so
+  configure failed. The dependency list also gained pkg-config, xkbcommon-x11,
+  libdecor, libdrm, libgbm and libudev.
+- Linux Release failed with a GCC 13 `-Wnull-dereference` false positive inside
+  libstdc++ triggered by `istreambuf_iterator`. `read_text_file` now sizes and
+  reads the file directly instead of suppressing the warning.
+- `tools/dev/ci_configure.sh` and `tools/dev/ci_build.sh` turn configure and
+  compiler failures into annotations, because job logs need admin access.
 
 ## Historical context
 
