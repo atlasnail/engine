@@ -47,13 +47,20 @@ Last updated: 2026-11-19
 
 ## Verification
 
-- **CI run 44588973457 on `0423ad0` is green.** Windows (MSVC): format, Debug
-  build/tests, Release build/tests. Linux (GCC 13, `ubuntu-24.04`): format,
-  Debug build/tests, ASan+UBSan build/tests, Release build/tests, advisory tidy.
-  Linux tests run with `SDL_VIDEODRIVER=dummy`; window tests that need a real
-  driver still skip.
+- **CI on `15b900c` is green** (run `44591972552`; the `CI` workflow badge for
+  `main` reports passing, and the Linux job page shows the blocking
+  `Static analysis` step). Windows (MSVC): format, Debug build/tests, Release
+  build/tests. Linux (GCC 13, `ubuntu-24.04`): format, Debug build/tests,
+  ASan+UBSan build/tests, Release build/tests, blocking clang-tidy. The vendored
+  glad loader compiles in both jobs. Linux tests use `SDL_VIDEODRIVER=dummy`;
+  window tests that need a real driver still skip.
+- Per-step log detail is not readable without repository admin rights, and the
+  unauthenticated API hit its hourly limit mid-session; the gate above was read
+  from the workflow badge and the public job page.
 - Windows MSVC Debug locally: build clean and CTest passes, including the new
-  input, stats and file-system tests.
+  input, stats and file-system tests. `tools/check_format.py` and
+  `tools/dev/ci_clang_tidy.sh build/windows-debug` both pass at tool version
+  22.1.8 (installed from PyPI, same as CI).
 - Not verified: real Linux desktop (X11/Wayland) behavior, real controller
   hardware, a current local Clang build, CRT leak gate, visible-window
   appearance of the stats readout, and any Tier A performance gate.
