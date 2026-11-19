@@ -1,0 +1,467 @@
+#include "eng/platform/window.hpp"
+
+#include <array>
+#include <mutex>
+
+#include <SDL3/SDL.h>
+
+#include "eng/core/log.hpp"
+#include "input_access.hpp"
+
+namespace eng {
+namespace {
+
+std::once_flag g_sdl_once;
+ErrorCode g_init_error = ErrorCode::none;
+
+SDL_Gamepad* g_gamepad = nullptr;
+SDL_JoystickID g_gamepad_id = 0;
+
+SDL_Scancode to_sdl(Key key) noexcept {
+    switch (key) {
+    case Key::key_a:
+        return SDL_SCANCODE_A;
+    case Key::key_b:
+        return SDL_SCANCODE_B;
+    case Key::key_c:
+        return SDL_SCANCODE_C;
+    case Key::key_d:
+        return SDL_SCANCODE_D;
+    case Key::key_e:
+        return SDL_SCANCODE_E;
+    case Key::key_f:
+        return SDL_SCANCODE_F;
+    case Key::key_g:
+        return SDL_SCANCODE_G;
+    case Key::key_h:
+        return SDL_SCANCODE_H;
+    case Key::key_i:
+        return SDL_SCANCODE_I;
+    case Key::key_j:
+        return SDL_SCANCODE_J;
+    case Key::key_k:
+        return SDL_SCANCODE_K;
+    case Key::key_l:
+        return SDL_SCANCODE_L;
+    case Key::key_m:
+        return SDL_SCANCODE_M;
+    case Key::key_n:
+        return SDL_SCANCODE_N;
+    case Key::key_o:
+        return SDL_SCANCODE_O;
+    case Key::key_p:
+        return SDL_SCANCODE_P;
+    case Key::key_q:
+        return SDL_SCANCODE_Q;
+    case Key::key_r:
+        return SDL_SCANCODE_R;
+    case Key::key_s:
+        return SDL_SCANCODE_S;
+    case Key::key_t:
+        return SDL_SCANCODE_T;
+    case Key::key_u:
+        return SDL_SCANCODE_U;
+    case Key::key_v:
+        return SDL_SCANCODE_V;
+    case Key::key_w:
+        return SDL_SCANCODE_W;
+    case Key::key_x:
+        return SDL_SCANCODE_X;
+    case Key::key_y:
+        return SDL_SCANCODE_Y;
+    case Key::key_z:
+        return SDL_SCANCODE_Z;
+    case Key::digit_0:
+        return SDL_SCANCODE_0;
+    case Key::digit_1:
+        return SDL_SCANCODE_1;
+    case Key::digit_2:
+        return SDL_SCANCODE_2;
+    case Key::digit_3:
+        return SDL_SCANCODE_3;
+    case Key::digit_4:
+        return SDL_SCANCODE_4;
+    case Key::digit_5:
+        return SDL_SCANCODE_5;
+    case Key::digit_6:
+        return SDL_SCANCODE_6;
+    case Key::digit_7:
+        return SDL_SCANCODE_7;
+    case Key::digit_8:
+        return SDL_SCANCODE_8;
+    case Key::digit_9:
+        return SDL_SCANCODE_9;
+    case Key::escape:
+        return SDL_SCANCODE_ESCAPE;
+    case Key::space:
+        return SDL_SCANCODE_SPACE;
+    case Key::enter:
+        return SDL_SCANCODE_RETURN;
+    case Key::tab:
+        return SDL_SCANCODE_TAB;
+    case Key::backspace:
+        return SDL_SCANCODE_BACKSPACE;
+    case Key::left:
+        return SDL_SCANCODE_LEFT;
+    case Key::right:
+        return SDL_SCANCODE_RIGHT;
+    case Key::up:
+        return SDL_SCANCODE_UP;
+    case Key::down:
+        return SDL_SCANCODE_DOWN;
+    case Key::left_shift:
+        return SDL_SCANCODE_LSHIFT;
+    case Key::left_ctrl:
+        return SDL_SCANCODE_LCTRL;
+    case Key::left_alt:
+        return SDL_SCANCODE_LALT;
+    case Key::f1:
+        return SDL_SCANCODE_F1;
+    case Key::f2:
+        return SDL_SCANCODE_F2;
+    case Key::f3:
+        return SDL_SCANCODE_F3;
+    case Key::f4:
+        return SDL_SCANCODE_F4;
+    case Key::f5:
+        return SDL_SCANCODE_F5;
+    case Key::f6:
+        return SDL_SCANCODE_F6;
+    case Key::f7:
+        return SDL_SCANCODE_F7;
+    case Key::f8:
+        return SDL_SCANCODE_F8;
+    case Key::f9:
+        return SDL_SCANCODE_F9;
+    case Key::f10:
+        return SDL_SCANCODE_F10;
+    case Key::f11:
+        return SDL_SCANCODE_F11;
+    case Key::f12:
+        return SDL_SCANCODE_F12;
+    case Key::unknown:
+    case Key::count:
+        break;
+    }
+    return SDL_SCANCODE_UNKNOWN;
+}
+
+std::array<Key, static_cast<usize>(SDL_SCANCODE_COUNT)> make_reverse_key_map() noexcept {
+    std::array<Key, static_cast<usize>(SDL_SCANCODE_COUNT)> map{};
+    map.fill(Key::unknown);
+    for (usize i = 1; i < k_key_count; ++i) {
+        const Key key = static_cast<Key>(i);
+        const usize index = static_cast<usize>(to_sdl(key));
+        if (index < map.size()) {
+            map[index] = key;
+        }
+    }
+    return map;
+}
+
+Key from_sdl(SDL_Scancode scancode) noexcept {
+    static const auto map = make_reverse_key_map();
+    const usize index = static_cast<usize>(scancode);
+    return index < map.size() ? map[index] : Key::unknown;
+}
+
+SDL_GamepadButton to_sdl(GamepadButton button) noexcept {
+    switch (button) {
+    case GamepadButton::south:
+        return SDL_GAMEPAD_BUTTON_SOUTH;
+    case GamepadButton::east:
+        return SDL_GAMEPAD_BUTTON_EAST;
+    case GamepadButton::west:
+        return SDL_GAMEPAD_BUTTON_WEST;
+    case GamepadButton::north:
+        return SDL_GAMEPAD_BUTTON_NORTH;
+    case GamepadButton::back:
+        return SDL_GAMEPAD_BUTTON_BACK;
+    case GamepadButton::start:
+        return SDL_GAMEPAD_BUTTON_START;
+    case GamepadButton::left_stick:
+        return SDL_GAMEPAD_BUTTON_LEFT_STICK;
+    case GamepadButton::right_stick:
+        return SDL_GAMEPAD_BUTTON_RIGHT_STICK;
+    case GamepadButton::left_shoulder:
+        return SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
+    case GamepadButton::right_shoulder:
+        return SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+    case GamepadButton::dpad_up:
+        return SDL_GAMEPAD_BUTTON_DPAD_UP;
+    case GamepadButton::dpad_down:
+        return SDL_GAMEPAD_BUTTON_DPAD_DOWN;
+    case GamepadButton::dpad_left:
+        return SDL_GAMEPAD_BUTTON_DPAD_LEFT;
+    case GamepadButton::dpad_right:
+        return SDL_GAMEPAD_BUTTON_DPAD_RIGHT;
+    case GamepadButton::count:
+        break;
+    }
+    return SDL_GAMEPAD_BUTTON_INVALID;
+}
+
+SDL_GamepadAxis to_sdl(GamepadAxis axis) noexcept {
+    switch (axis) {
+    case GamepadAxis::left_x:
+        return SDL_GAMEPAD_AXIS_LEFTX;
+    case GamepadAxis::left_y:
+        return SDL_GAMEPAD_AXIS_LEFTY;
+    case GamepadAxis::right_x:
+        return SDL_GAMEPAD_AXIS_RIGHTX;
+    case GamepadAxis::right_y:
+        return SDL_GAMEPAD_AXIS_RIGHTY;
+    case GamepadAxis::left_trigger:
+        return SDL_GAMEPAD_AXIS_LEFT_TRIGGER;
+    case GamepadAxis::right_trigger:
+        return SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
+    case GamepadAxis::count:
+        break;
+    }
+    return SDL_GAMEPAD_AXIS_INVALID;
+}
+
+MouseButton to_engine_button(u8 sdl_button) noexcept {
+    switch (sdl_button) {
+    case SDL_BUTTON_LEFT:
+        return MouseButton::left;
+    case SDL_BUTTON_RIGHT:
+        return MouseButton::right;
+    case SDL_BUTTON_MIDDLE:
+        return MouseButton::middle;
+    default:
+        return MouseButton::count;
+    }
+}
+
+void initialize_sdl() {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        g_init_error = ErrorCode::internal_error;
+        ENG_LOG_ERROR("platform", "SDL_Init(SDL_INIT_VIDEO) failed: %s", SDL_GetError());
+        return;
+    }
+    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+        ENG_LOG_WARN("platform", "gamepad subsystem unavailable: %s", SDL_GetError());
+    }
+}
+
+Status ensure_sdl() {
+    std::call_once(g_sdl_once, initialize_sdl);
+    if (g_init_error != ErrorCode::none) {
+        return Status::failure(g_init_error, "SDL video initialization failed");
+    }
+    return Status::ok();
+}
+
+void open_gamepad(SDL_JoystickID instance_id) noexcept {
+    if (g_gamepad != nullptr) {
+        return;
+    }
+    SDL_Gamepad* gamepad = SDL_OpenGamepad(instance_id);
+    if (gamepad == nullptr) {
+        ENG_LOG_WARN("platform", "could not open gamepad: %s", SDL_GetError());
+        return;
+    }
+    g_gamepad = gamepad;
+    g_gamepad_id = instance_id;
+    ENG_LOG_INFO("platform", "gamepad connected: %s", SDL_GetGamepadName(gamepad));
+}
+
+void close_gamepad(SDL_JoystickID instance_id) noexcept {
+    if (g_gamepad == nullptr || g_gamepad_id != instance_id) {
+        return;
+    }
+    SDL_CloseGamepad(g_gamepad);
+    g_gamepad = nullptr;
+    g_gamepad_id = 0;
+    ENG_LOG_INFO("platform", "gamepad disconnected");
+}
+
+void sync_gamepad(InputState& input) noexcept {
+    if (g_gamepad == nullptr) {
+        platform::detail::InputAccess::set_gamepad_connected(input, false);
+        return;
+    }
+
+    platform::detail::InputAccess::set_gamepad_connected(input, true);
+
+    for (usize i = 0; i < k_gamepad_button_count; ++i) {
+        const auto button = static_cast<GamepadButton>(i);
+        platform::detail::InputAccess::set_gamepad_button(
+            input, button, SDL_GetGamepadButton(g_gamepad, to_sdl(button)));
+    }
+
+    for (usize i = 0; i < k_gamepad_axis_count; ++i) {
+        const auto axis = static_cast<GamepadAxis>(i);
+        float value = static_cast<float>(SDL_GetGamepadAxis(g_gamepad, to_sdl(axis))) / 32767.0f;
+        if (axis == GamepadAxis::left_trigger || axis == GamepadAxis::right_trigger) {
+            value = value < 0.0f ? 0.0f : value;
+        }
+        platform::detail::InputAccess::set_gamepad_axis(input, axis, value);
+    }
+}
+
+}  // namespace
+
+struct Window::Impl {
+    SDL_Window* handle = nullptr;
+    bool close_requested = false;
+    bool vsync = true;
+};
+
+Result<std::unique_ptr<Window>> Window::create(const WindowConfig& config) {
+    if (config.width <= 0 || config.height <= 0) {
+        return Error{ErrorCode::invalid_argument, "window size must be positive"};
+    }
+
+    const Status status = ensure_sdl();
+    if (status.is_error()) {
+        return status.error();
+    }
+
+    SDL_WindowFlags flags = 0;
+    if (config.resizable) {
+        flags |= SDL_WINDOW_RESIZABLE;
+    }
+    if (config.hidden) {
+        flags |= SDL_WINDOW_HIDDEN;
+    }
+    if (config.high_density) {
+        flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    }
+
+    SDL_Window* handle = SDL_CreateWindow(config.title, config.width, config.height, flags);
+    if (handle == nullptr) {
+        ENG_LOG_ERROR("platform", "SDL_CreateWindow failed: %s", SDL_GetError());
+        return Error{ErrorCode::internal_error, "could not create window"};
+    }
+
+    auto impl = std::make_unique<Impl>();
+    impl->handle = handle;
+    impl->vsync = config.vsync;
+
+    return std::unique_ptr<Window>(new Window(std::move(impl)));
+}
+
+Window::Window(std::unique_ptr<Impl> impl) noexcept : impl_(std::move(impl)) {}
+
+Window::~Window() {
+    if (impl_ != nullptr && impl_->handle != nullptr) {
+        SDL_DestroyWindow(impl_->handle);
+        impl_->handle = nullptr;
+    }
+}
+
+void Window::pump_events(InputState& input) {
+    platform::detail::InputAccess::begin_frame(input);
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+        case SDL_EVENT_QUIT:
+            impl_->close_requested = true;
+            break;
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
+                impl_->close_requested = true;
+            }
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            platform::detail::InputAccess::release_all_keys(input);
+            break;
+        case SDL_EVENT_KEY_DOWN: {
+            const Key key = from_sdl(event.key.scancode);
+            if (key != Key::unknown) {
+                platform::detail::InputAccess::set_key(input, key, true);
+            }
+            break;
+        }
+        case SDL_EVENT_KEY_UP: {
+            const Key key = from_sdl(event.key.scancode);
+            if (key != Key::unknown) {
+                platform::detail::InputAccess::set_key(input, key, false);
+            }
+            break;
+        }
+        case SDL_EVENT_MOUSE_MOTION:
+            platform::detail::InputAccess::mouse_motion(input, event.motion.x, event.motion.y);
+            break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_UP: {
+            const MouseButton button = to_engine_button(event.button.button);
+            if (button != MouseButton::count) {
+                platform::detail::InputAccess::mouse_button(
+                    input, button, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+            }
+            break;
+        }
+        case SDL_EVENT_MOUSE_WHEEL:
+            platform::detail::InputAccess::wheel(input, event.wheel.y);
+            break;
+        case SDL_EVENT_GAMEPAD_ADDED:
+            open_gamepad(event.gdevice.which);
+            break;
+        case SDL_EVENT_GAMEPAD_REMOVED:
+            close_gamepad(event.gdevice.which);
+            break;
+        default:
+            break;
+        }
+    }
+
+    sync_gamepad(input);
+}
+
+bool Window::should_close() const noexcept {
+    return impl_->close_requested;
+}
+
+void Window::request_close() noexcept {
+    impl_->close_requested = true;
+}
+
+void Window::set_title(const char* title) {
+    SDL_SetWindowTitle(impl_->handle, title);
+}
+
+void Window::toggle_fullscreen() {
+    if (!SDL_SetWindowFullscreen(impl_->handle, !is_fullscreen())) {
+        ENG_LOG_WARN("platform", "could not toggle fullscreen: %s", SDL_GetError());
+    }
+}
+
+IVec2 Window::size_pixels() const noexcept {
+    int width = 0;
+    int height = 0;
+    SDL_GetWindowSizeInPixels(impl_->handle, &width, &height);
+    return IVec2{width, height};
+}
+
+IVec2 Window::size_points() const noexcept {
+    int width = 0;
+    int height = 0;
+    SDL_GetWindowSize(impl_->handle, &width, &height);
+    return IVec2{width, height};
+}
+
+float Window::display_scale() const noexcept {
+    return SDL_GetWindowDisplayScale(impl_->handle);
+}
+
+bool Window::is_minimized() const noexcept {
+    return (SDL_GetWindowFlags(impl_->handle) & SDL_WINDOW_MINIMIZED) != 0;
+}
+
+bool Window::has_focus() const noexcept {
+    return (SDL_GetWindowFlags(impl_->handle) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
+bool Window::is_fullscreen() const noexcept {
+    return (SDL_GetWindowFlags(impl_->handle) & SDL_WINDOW_FULLSCREEN) != 0;
+}
+
+void* Window::native_handle() const noexcept {
+    return impl_->handle;
+}
+
+}  // namespace eng

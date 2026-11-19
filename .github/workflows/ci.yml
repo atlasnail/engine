@@ -54,6 +54,9 @@ jobs:
   linux:
     name: Linux (GCC)
     runs-on: ubuntu-24.04
+    env:
+      # No display in CI. Window tests use SDL's dummy video backend.
+      SDL_VIDEODRIVER: dummy
     steps:
       - uses: actions/checkout@v4
 
@@ -61,10 +64,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install tools
+      - name: Install tools and SDL build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang-tidy
+          sudo apt-get install -y ninja-build clang-tidy \
+            libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
+            libxfixes-dev libxss-dev libasound2-dev libpulse-dev \
+            libwayland-dev libxkbcommon-dev
           python -m pip install "clang-format==${CLANG_FORMAT_VERSION}"
 
       - name: Check formatting

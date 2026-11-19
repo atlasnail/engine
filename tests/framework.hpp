@@ -36,6 +36,16 @@ inline int& check_count() {
     return checks;
 }
 
+inline int& skip_count() {
+    static int skips = 0;
+    return skips;
+}
+
+inline const char*& current_test_name() {
+    static const char* name = "";
+    return name;
+}
+
 struct Registrar {
     Registrar(const char* name, TestFn fn) { registry().push_back(TestCase{name, fn}); }
 };
@@ -70,4 +80,13 @@ inline void report_failure(const char* file, int line, const char* expression) {
             ::engtest::report_failure(__FILE__, __LINE__, #expression);                            \
             return;                                                                                \
         }                                                                                          \
+    } while (0)
+
+// Skips the current test. Used where a capability is unavailable (no video
+// driver, no GPU) rather than failing, so CI coverage stays honest.
+#define SKIP_TEST(reason)                                                                          \
+    do {                                                                                           \
+        ++::engtest::skip_count();                                                                 \
+        std::printf("SKIP  %s: %s\n", ::engtest::current_test_name(), reason);                     \
+        return;                                                                                    \
     } while (0)

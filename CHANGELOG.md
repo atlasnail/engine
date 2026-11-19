@@ -7,6 +7,33 @@ releases may contain breaking changes, and they are always described below.
 
 ## [Unreleased]
 
+### Added
+
+- SDL 3.4.20 pinned by URL and SHA-256 and built statically inside `engine/platform`.
+- `eng_platform`:
+  - window creation, OS event pump, resize/focus/minimize/fullscreen handling;
+  - engine-owned keyboard, mouse and gamepad state with pressed/released edges;
+  - fixed-step application loop with catch-up cap, interpolation alpha, optional
+    FPS limiter and per-frame CSV logging;
+  - UTF-8 file helpers with atomic replace, directory creation and executable
+    directory lookup.
+- Fixed-step timing utilities in `eng_core`.
+- `bench_blank` benchmark driver with warm-up, sample cap, pacing/unlimited modes
+  and process-memory reporting.
+- Platform test suite (window, file system, app loop).
+
+### Changed
+
+- The first CMake configure now downloads SDL; offline builds reuse
+  `build/<preset>/_deps/`.
+
+### Notes
+
+- OpenGL context creation moved to M2 with the renderer so headless window tests
+  do not require a GPU.
+- Baseline numbers are from `dev-01`, not Tier A hardware; see
+  `benchmarks/results/2026-11-19-bench_blank-win-x64-dev01.md`.
+
 ## [0.1.0-dev] - 2026-11-19
 
 First implementation milestone (M0: foundations). No rendering, input or audio

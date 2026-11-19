@@ -2,9 +2,10 @@
 
 A from-scratch, native **2D-only game engine** for **Windows and Linux**, built for tight control over frame time and memory use, high-quality audio, a simple art-asset workflow, and a codebase that humans and AI agents can maintain over years.
 
-**Status: M0 implemented (core foundation).** `eng_core` builds and its test
-suite passes on Windows; Linux is configured in CI but not yet verified. There is
-no window, renderer or audio yet — M1 is next. See
+**Status: M0 complete, M1 platform layer implemented.** `eng_core` and
+`eng_platform` build and their tests pass on Windows; a window opens, input and a
+fixed-step loop work, and `bench_blank` measures the frame budget. There is no
+renderer or audio yet. Linux is configured in CI but not yet verified. See
 [`docs/status.md`](docs/status.md) for the exact state.
 
 ## Quick start (Windows)

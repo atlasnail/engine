@@ -15,13 +15,16 @@ There is no game window yet. M0 is the foundation:
 
 | Piece | What it does | Where |
 | --- | --- | --- |
-| Build system | Turns source files into a library and a test program | `CMakeLists.txt`, `CMakePresets.json`, `cmake/` |
-| `eng_core` | Math, errors, logging, memory tracking, time | `engine/core/` |
-| Tests | 25 cases that check the core on every build | `tests/` |
+| Build system | Turns source files into libraries, tests and a benchmark | `CMakeLists.txt`, `CMakePresets.json`, `cmake/` |
+| `eng_core` | Math, errors, logging, memory tracking, time, fixed-step timing | `engine/core/` |
+| `eng_platform` | Window, OS events, input, application loop, file system; wraps SDL | `engine/platform/` |
+| Tests | 40 cases that check the core and platform on every build | `tests/` |
+| Benchmark | `bench_blank`: measures an empty frame | `benchmarks/` |
 | Tooling | Formatting, static analysis, CI | `tools/`, `.clang-format`, `.clang-tidy`, `.github/workflows/ci.yml` |
 | Documentation | Plan, architecture, rules, decisions, this guide | `docs/`, `AGENTS.md`, `README.md` |
 
-The first visible result (a window, game loop and input) is milestone M1.
+The first visual result (a window with a loop and input) works. The renderer,
+and with it anything you can see inside the window, is milestone M2.
 
 ---
 
@@ -126,13 +129,34 @@ Implementations (`.cpp`). Each one is compiled once into `eng_core`.
 - `time.cpp` — `std::chrono::steady_clock`, which never jumps when the system
   clock is adjusted.
 
+### `engine/platform/`
+
+This is the only module that talks to the operating system directly (through
+SDL). Everything above it uses engine types.
+
+| File | Purpose |
+| --- | --- |
+| `window.hpp` | Creates a window, pumps OS events, answers size/focus/fullscreen questions |
+| `input.hpp` | Keyboard/mouse/gamepad state with `down`/`pressed`/`released` queries |
+| `app.hpp` | Owns the window and runs the loop: events → fixed updates → render → limit |
+| `fs.hpp` | UTF-8 file read/write, atomic replace, directories, executable path |
+| `src/window.cpp` | SDL event translation, key/gamepad mapping, focus-loss handling |
+| `src/app.cpp` | Fixed-step accumulator, FPS limiter, optional CSV frame log |
+
+SDL is pinned in `third_party/` and downloaded on the first configure. It is a
+dependency of the platform layer, not part of the engine's public API: no SDL
+type appears in these headers.
+
 ### `tests/`
 
-- `framework.hpp` — ~100 lines: registers test cases, `CHECK`/`REQUIRE`, a
-  filter and a summary. No third-party dependency.
+- `framework.hpp` — ~130 lines: registers test cases, `CHECK`/`REQUIRE`/`SKIP`,
+  a filter and a summary. No third-party dependency.
 - `test_main.cpp` — runs the registered cases, then fails if the engine leaked
   any tracked allocation.
-- `test_*.cpp` — one file per area (math, result, memory, log, time, version).
+- `test_*.cpp` — one file per area (math, result, memory, log, time, fixed step,
+  version).
+- `platform/` — window, file system and app-loop tests. They skip when no video
+  driver exists instead of failing.
 
 ---
 
@@ -204,6 +228,54 @@ which operand is evaluated first. That exact bug produced a negative timestamp
 and is now fixed and tested.
 
 ---
+
+## Window, input and the main loop
+
+`eng::App` is the smallest useful game loop:
+
+```cpp
+eng::AppConfig config;               // window size, title, fixed step, FPS limit
+config.window.title = "my game";
+
+auto app = eng::App::create(config);
+if (app.is_error()) { /* log and exit */ }
+
+app.value()->run(
+    [](double dt) { /* gameplay: always dt == fixed step */ },
+    [](double alpha) { /* draw; alpha blends between simulation states */ });
+```
+
+What happens each iteration in `engine/platform/src/app.cpp`:
+
+1. `pump_events` clears one-frame input edges (pressed/released, mouse delta,
+   wheel) and translates every pending SDL event.
+2. The frame's duration goes into `FixedTimestep`, which returns 0..8 fixed
+   steps. Gameplay never sees a variable `dt`, so behaviour is stable.
+3. `render(alpha)` is called once, where `alpha` is the fraction of the next
+   step already elapsed (used to interpolate positions).
+4. If frame limiting is on, the loop sleeps until the 60 FPS target using
+   `SDL_DelayNS`, which paces better than a naive `sleep_for` on Windows.
+
+Why fixed steps: physics and animation remain deterministic and independent of
+the monitor's refresh rate. Why a cap: after a debugger pause or a window drag,
+the loop must not try to simulate seconds of catch-up in one frame; extra steps
+are dropped and counted.
+
+A game should not call `SDL_*` directly. If a feature is missing, add it to
+`eng_platform` and expose an engine type.
+
+## Measuring an empty frame
+
+After building `windows-release` (or `linux-release`):
+
+```bash
+build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1
+```
+
+It prints p50/p99 frame time, dropped steps and process memory. The unlimited
+mode (`--no-limit`) measures pure loop overhead; paced mode checks the limiter.
+Targets and the recording format are in `docs/performance.md`. Numbers are only
+meaningful from a Release build, and the machine plus commit must be recorded.
 
 ## How the core pieces behave
 
@@ -291,6 +363,9 @@ Edit `VERSION` in the root `CMakeLists.txt` only. The generated header and
 | **Monotonic clock** | A clock that only moves forward |
 | **RAII** | Tying a resource's lifetime to an object's scope |
 | **UB** | Undefined behavior: code whose result the language does not define |
+| **SDL** | Cross-platform library for windows, input, audio and threads; wrapped by `eng_platform` |
+| **Fixed step** | Gameplay always advances by the same `dt`, regardless of frame rate |
+| **Interpolation alpha** | 0..1 fraction between two simulation steps, used for smooth drawing |
 
 ---
 

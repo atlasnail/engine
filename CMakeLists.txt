@@ -20,6 +20,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 option(ENG_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 option(ENG_BUILD_TESTS "Build the test suite" ON)
+option(ENG_BUILD_BENCHMARKS "Build the benchmark drivers" ON)
 option(ENG_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer (GCC/Clang)" OFF)
 
 include(cmake/CompilerWarnings.cmake)
@@ -33,11 +34,17 @@ if(ENG_SANITIZE)
     endif()
 endif()
 
+add_subdirectory(third_party)
 add_subdirectory(engine/core)
+add_subdirectory(engine/platform)
 
 if(ENG_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(ENG_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 
 # ---------------------------------------------------------------------------

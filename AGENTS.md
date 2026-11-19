@@ -95,8 +95,22 @@ Sanitizers: `linux-asan`. Formatting: `python tools/check_format.py`
 (`--fix` rewrites); run it through `tools\dev\msvc_env.bat` on Windows so the
 Visual Studio clang-format is found.
 
-Artifacts: `build/<preset>/bin/eng_tests(.exe)`, library in
-`build/<preset>/lib/`. The test executable accepts a substring filter
+Benchmark (Release only, after building `windows-release`):
+
+```bash
+build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1
+```
+
+Read `docs/performance.md` before quoting a number; record every gated run in
+`benchmarks/results/`.
+
+The first configure downloads SDL 3.4.20 (pinned in `third_party/`). After that,
+`build/<preset>/_deps/` is reused. A configure without network fails; use a
+populated dependency cache or a local archive override.
+
+Artifacts: `build/<preset>/bin/eng_tests(.exe)`,
+`build/<preset>/bin/eng_platform_tests(.exe)`, `bench_blank(.exe)`; libraries in
+`build/<preset>/lib/`. Test executables accept a substring filter
 (`eng_tests.exe memory`).
 
 Keep this section, `README.md` and `docs/status.md` consistent when commands or

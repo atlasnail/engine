@@ -184,7 +184,23 @@ Tracked here until resolved by ADR; each becomes an ADR at M0.
 | D9 | Editor scope | None for 1.0; command-line asset tools only | M9 |
 | D10 | Script binding style (Lua) | Explicit context table, no exposed raw pointers, script errors isolated | M8 |
 
-## 7. What agents must not assume
+## 7. Implementation status (M1)
+
+What is actually true today, as opposed to intended:
+
+- `platform` wraps SDL 3.4.20 and exposes `Window`, `InputState`, `App` and
+  `eng::fs`. SDL types stay inside the module; the only leak is the opaque
+  `void* native_handle()` intended for the renderer backend.
+- The OpenGL context is **not** created yet. It arrives with the M2 renderer,
+  because window tests must run headless.
+- `app` runs fixed updates with an interpolation alpha, an optional FPS limiter
+  and an optional CSV frame log. It is internal API until the public surface is
+  defined at M2.
+- One gamepad is supported at a time; hot-plug is handled.
+- D1 (SDL3), D2 (OpenGL 3.3) and D7 (error model) are settled by ADRs; D3 (y-down)
+  and D4 (color pipeline) are still open for M2.
+
+## 8. What agents must not assume
 
 - That a module exists because it is listed here.
 - That a sketch API compiles, is stable, or has been reviewed.
