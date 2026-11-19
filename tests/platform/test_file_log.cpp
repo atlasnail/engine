@@ -9,6 +9,7 @@
 
 #include "eng/core/log.hpp"
 #include "eng/platform/file_log.hpp"
+#include "eng/platform/fs.hpp"
 
 TEST_CASE(file_log_rotates_and_flushes) {
     // Keep artifacts in the build/test working directory, not the system temp dir.
@@ -32,11 +33,9 @@ TEST_CASE(file_log_rotates_and_flushes) {
     CHECK(std::filesystem::exists(dir / "engine.log"));
     CHECK(std::filesystem::exists(dir / "engine.log.1"));
     CHECK(std::filesystem::exists(dir / "engine.log.2"));
-    std::ifstream latest(dir / "engine.log");
-    std::string contents((std::istreambuf_iterator<char>(latest)),
-                         std::istreambuf_iterator<char>());
-    CHECK(contents.find("third record") != std::string::npos);
-    latest.close();
+    const auto latest = eng::fs::read_text_file((dir / "engine.log").string());
+    REQUIRE(latest.is_ok());
+    CHECK(latest.value().find("third record") != std::string::npos);
     std::filesystem::remove_all(dir, error);
     CHECK(!error);
 }

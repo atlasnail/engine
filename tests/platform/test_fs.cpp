@@ -103,3 +103,11 @@ TEST_CASE(fs_create_directories_rejects_existing_file) {
     CHECK(eng::fs::create_directories(path).is_error());
     cleanup_test_directory();
 }
+
+TEST_CASE(fs_reading_a_directory_is_an_error) {
+    reset_test_directory();
+    const eng::Result<std::string> read = eng::fs::read_text_file(test_directory().string());
+    REQUIRE(read.is_error());
+    CHECK(read.error().code == eng::ErrorCode::io_failure);
+    cleanup_test_directory();
+}

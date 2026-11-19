@@ -81,17 +81,34 @@ Result<std::string> read_text_file(std::string_view path) {
     if (!file_exists || error) {
         return Error{ErrorCode::not_found, "file not found"};
     }
+    if (std::filesystem::is_directory(fs_path, error) && !error) {
+        return Error{ErrorCode::io_failure, "path is a directory"};
+    }
 
-    std::ifstream file(fs_path, std::ios::binary);
+    // Read by size rather than with istreambuf_iterator: GCC 13 at -O3 reports
+    // a null-dereference false positive inside libstdc++'s streambuf when the
+    // iterator form is inlined, which fails this project's warnings-as-errors
+    // build. A sized read also avoids repeated string growth.
+    std::ifstream file(fs_path, std::ios::binary | std::ios::ate);
     if (!file) {
         ENG_LOG_ERROR("fs", "could not open %s for reading", std::string(path).c_str());
         return Error{ErrorCode::io_failure, "could not open file for reading"};
     }
 
-    std::string contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    if (file.bad()) {
-        ENG_LOG_ERROR("fs", "error while reading %s", std::string(path).c_str());
-        return Error{ErrorCode::io_failure, "error while reading file"};
+    const std::streamoff end = file.tellg();
+    if (end < 0) {
+        ENG_LOG_ERROR("fs", "could not size %s", std::string(path).c_str());
+        return Error{ErrorCode::io_failure, "could not determine file size"};
+    }
+
+    std::string contents(static_cast<std::size_t>(end), '\0');
+    file.seekg(0, std::ios::beg);
+    if (!contents.empty()) {
+        file.read(contents.data(), static_cast<std::streamsize>(contents.size()));
+        if (!file) {
+            ENG_LOG_ERROR("fs", "short read of %s", std::string(path).c_str());
+            return Error{ErrorCode::io_failure, "error while reading file"};
+        }
     }
 
     return contents;
