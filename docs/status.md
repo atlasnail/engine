@@ -74,20 +74,25 @@ Last updated: 2026-11-19
 
 ## Verification
 
-- **CI on `15b900c` is green** (run `44591972552`; the `CI` workflow badge for
-  `main` reports passing, and the Linux job page shows the blocking
-  `Static analysis` step). Windows (MSVC): format, Debug build/tests, Release
-  build/tests. Linux (GCC 13, `ubuntu-24.04`): format, Debug build/tests,
-  ASan+UBSan build/tests, Release build/tests, blocking clang-tidy. The vendored
-  glad loader compiles in both jobs. Linux tests use `SDL_VIDEODRIVER=dummy`;
-  window tests that need a real driver still skip.
+- **CI on `46384e1` is green** (run `44599648554`). Windows (MSVC): format,
+  Debug build/tests, Release build/tests. Linux (GCC 13, `ubuntu-24.04`):
+  format, Debug build/tests, ASan+UBSan build/tests, Release build/tests,
+  blocking clang-tidy. This run covers the SDL lifecycle: ASan+LSan on Linux
+  passes with `SDL_Quit` actually executing, which is the first run where
+  shutdown happens at all. Linux tests use `SDL_VIDEODRIVER=dummy`; window tests
+  that need a real driver still skip.
+- The CRT leak gate is Windows Debug only, so CI exercises it in the Windows
+  Debug job and the Release jobs compile it out by design.
 - Per-step log detail is not readable without repository admin rights, and the
   unauthenticated API hit its hourly limit mid-session; the gate above was read
   from the workflow badge and the public job page.
-- Windows MSVC Debug locally: build clean and CTest passes, including the new
-  input, stats and file-system tests. `tools/check_format.py` and
+- Windows MSVC Debug and Release locally: build clean, CTest passes (2 suites,
+  26 platform cases). `tools/check_format.py` and
   `tools/dev/ci_clang_tidy.sh build/windows-debug` both pass at tool version
   22.1.8 (installed from PyPI, same as CI).
+- The leak gate was proved able to fail: adding a 64-byte `malloc` to a temporary
+  test case made `eng_platform_tests` exit 1 and dump the block; removing it
+  restored exit 0 for both binaries.
 - Not verified: real Linux desktop (X11/Wayland) behavior, real controller
   hardware, a current local Clang build, visible-window appearance of the stats
   readout, and any Tier A performance gate.
