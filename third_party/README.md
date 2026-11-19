@@ -33,18 +33,24 @@ SDL needs development headers for the windowing/audio backends it enables.
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install build-essential cmake ninja-build \
+sudo apt-get install build-essential cmake ninja-build pkg-config \
     libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
-    libxfixes-dev libxss-dev libasound2-dev libpulse-dev \
-    libwayland-dev libxkbcommon-dev
+    libxfixes-dev libxss-dev libxtst-dev libasound2-dev libpulse-dev \
+    libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libdecor-0-dev \
+    libdrm-dev libgbm-dev libudev-dev
 ```
 
-Missing optional backends are disabled by SDL rather than failing the build; the
-engine still targets X11 and Wayland for real desktops. Exact package
-requirements are verified when Linux CI first runs.
+SDL 3.4.20 treats XTest as required when X11 is enabled, so `libxtst-dev` is
+not optional: without it the configure step fails with
+`Couldn't find dependency package for XTEST`.
+
+Most optional backends are disabled by SDL when their headers are absent, but
+some X11 dependencies are hard requirements; see the XTest note above. The
+engine targets X11 and Wayland for real desktops.
 
 ## CI note
 
 `ubuntu-24.04` runners do not ship all of the above packages. The Linux CI job
-installs the windowing/audio development headers before configuring; if a
-package is missing, SDL disables that backend and the build still succeeds.
+installs the windowing/audio development headers before configuring, and
+`tools/dev/ci_configure.sh` prints configure errors as annotations so failures
+are readable without admin access to the job logs.
