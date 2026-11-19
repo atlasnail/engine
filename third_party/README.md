@@ -7,6 +7,7 @@ benchmark suites on both platforms.
 | Dependency | Version | License | Used by | Pin |
 | --- | --- | --- | --- | --- |
 | SDL | **3.4.20** | Zlib | `engine/platform` | URL + SHA-256 in `third_party/CMakeLists.txt` |
+| glad (OpenGL loader) | **2.0.8** | MIT (Khronos headers keep their notice) | M2 renderer, via `eng::gl_loader` | Generated output vendored in `third_party/glad/`; generator archive pinned by SHA-256 in its README |
 
 ## SDL 3.4.20
 
@@ -19,6 +20,18 @@ benchmark suites on both platforms.
   first configure into `build/<preset>/_deps/`.
 - Update policy: check upstream release notes, bump the pin, run the full test
   suite and `bench_blank` on both platforms, and note behavioral changes.
+
+## glad 2.0.8
+
+- Generator source: <https://github.com/Dav1dde/glad/releases/tag/v2.0.8>
+- Archive: `glad-2.0.8.tar.gz`, SHA-256
+  `44f06f9195427c7017f5028d0894f57eb216b0a8f7c4eda7ce883732aeb2d0fc`
+- Output: GL 3.3 core, no extensions, C.
+- Why vendored: glad generates with Python and Jinja2. Requiring a specific
+  Python for every build is fragile; the output never changes between
+  dependency updates, so it is generated once and committed. See ADR-0010.
+- Details, exact command and regeneration steps: `third_party/glad/README.md`.
+- Nothing links the loader yet; the renderer arrives in M2.
 
 ## Offline builds
 

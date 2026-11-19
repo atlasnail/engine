@@ -36,3 +36,4 @@ ADRs are binding until superseded.
 | [0007](0007-api-stability-and-deprecation.md) | API stability tiers and deprecation policy | Accepted |
 | [0008](0008-error-model.md) | Error values at boundaries, no exceptions in public API | Accepted |
 | [0009](0009-test-harness.md) | A minimal in-repository test harness | Accepted |
+| [0010](0010-opengl-loader.md) | glad 2.0.8 as the pinned OpenGL 3.3 core loader | Accepted |

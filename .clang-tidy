@@ -15,7 +15,7 @@ Checks: >
   -bugprone-narrowing-conversions,
   -performance-enum-size
 WarningsAsErrors: ''
-HeaderFilterRegex: 'engine/(core|public)/.*'
+HeaderFilterRegex: 'engine/.*'
 FormatStyle: file
 CheckOptions:
   readability-braces-around-statements.ShortStatementLines: '1'

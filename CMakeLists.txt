@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.25)
 project(engine
     VERSION 0.1.0
     DESCRIPTION "Native 2D game engine for Windows and Linux"
-    LANGUAGES CXX
+    # C is enabled because pinned dependencies (SDL, the glad loader) are C
+    # libraries built inside this project. Engine code itself is C++20.
+    LANGUAGES C CXX
 )
 
 # ---------------------------------------------------------------------------

@@ -24,3 +24,9 @@ FetchContent_Declare(SDL3
 )
 
 FetchContent_MakeAvailable(SDL3)
+
+# OpenGL loader (ADR-0010). The generated glad output is vendored rather than
+# generated at build time, so no Python or Jinja2 is needed to build the engine.
+# See third_party/glad/README.md for the exact generator version and command.
+add_subdirectory(glad)
+

@@ -180,7 +180,7 @@ Tracked here until resolved by ADR; each becomes an ADR at M0.
 | D5 | ECS style (sparse sets vs. archetypes vs. simple pools) | Simple typed pools + component arrays first; optimize only if measured | M5 |
 | D6 | Save format (binary vs. JSON) | Versioned JSON + optional binary payloads for debuggability; revisit if size/latency demands | M6 |
 | D7 | Exception policy | No exceptions in engine hot paths or public API; tools/tests may use them | M0 |
-| D8 | Third-party use policy | SDL3, GL loader, stb_image initially; Lua, Ogg/Vorbis, JSON parser added when their milestone needs them; each pinned and ADR'd | M0 |
+| D8 | Third-party use policy | SDL3 and glad are pinned (ADR-0002, ADR-0010); stb_image, Lua, Ogg/Vorbis and a JSON parser are added when their milestone needs them, each pinned and ADR'd | M0 |
 | D9 | Editor scope | None for 1.0; command-line asset tools only | M9 |
 | D10 | Script binding style (Lua) | Explicit context table, no exposed raw pointers, script errors isolated | M8 |
 
@@ -191,6 +191,8 @@ What is actually true today, as opposed to intended:
 - `platform` wraps SDL 3.4.20 and exposes `Window`, `InputState`, `App` and
   `eng::fs`. SDL types stay inside the module; the only leak is the opaque
   `void* native_handle()` intended for the renderer backend.
+- The OpenGL loader is pinned as glad 2.0.8, GL 3.3 core with no extensions
+  (ADR-0010). It builds as `eng::gl_loader`; no engine target links it yet.
 - The OpenGL context is **not** created yet. It arrives with the M2 renderer,
   because window tests must run headless.
 - `app` runs fixed updates with an interpolation alpha, an optional FPS limiter

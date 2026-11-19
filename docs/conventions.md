@@ -14,7 +14,10 @@ These rules apply from M0 onward. Changing a rule requires a short note in this 
 ## 2. Code style
 
 - `.clang-format` is authoritative and pinned by version; CI verifies formatting.
-- `.clang-tidy` runs on changed files; warnings that matter are errors.
+- `.clang-tidy` is authoritative and **blocking in CI** over engine sources, run
+  with the same pinned clang-tidy version as CI (currently 22.1.8). Tests and
+  benchmarks are outside the scan. Do not add suppressions to get a change
+  through; fix the finding or narrow the check with a recorded reason.
 - Naming: `snake_case` for functions, variables and files; `PascalCase` for types; `kPascalCase` for constants; trailing underscore avoided; namespaces `eng::` (public) and `eng::detail::` (internal).
 - Headers: `#pragma once`; include what you use; forward-declare in public headers where possible.
 - Components are small and single-purpose; prefer free functions and plain structs to deep hierarchies.

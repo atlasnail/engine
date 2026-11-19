@@ -9,6 +9,8 @@ releases may contain breaking changes, and they are always described below.
 
 ### Added
 
+- glad 2.0.8 as the pinned OpenGL 3.3 core loader (`eng::gl_loader`), generated
+  once and vendored; see ADR-0010. Nothing links it until the M2 renderer.
 - MIT license, selected in `QA.md`.
 - Fixed-capacity named digital action bindings for keyboard, mouse and gamepad;
   opt-in rotating file/console log sink and a frame stats display.
@@ -33,6 +35,11 @@ releases may contain breaking changes, and they are always described below.
 
 - The first CMake configure now downloads SDL; offline builds reuse
   `build/<preset>/_deps/`.
+- clang-tidy is a blocking CI check over all engine sources, pinned to 22.1.8
+  together with clang-format. `.clang-tidy` now also covers `engine/platform`
+  headers.
+- The root project enables C alongside C++ because SDL and the GL loader are C
+  libraries built inside the project.
 
 ### Fixed
 

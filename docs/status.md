@@ -6,9 +6,10 @@ Last updated: 2026-11-19
 
 ## Current position
 
-- **M0 is close but not signed off:** Windows and Linux now build and test in
-  CI (Debug, Release, ASan/UBSan on Linux), but the pinned GL loader gate and
-  required (non-advisory) clang-tidy enforcement are still open.
+- **M0:** both gates that were open are now closed — clang-tidy is blocking in
+  CI over engine sources, and the OpenGL loader is pinned (glad 2.0.8, ADR-0010).
+  One exit criterion is still not met and is not claimed: a Windows CRT leak
+  check, which needs an SDL shutdown lifecycle first (see below).
 - **M1 is in progress:** platform work was started before M0's gates were met.
   This is not an approval to declare M0 or M1 complete, or to start M2.
 - Version `0.1.0-dev`; implementation: core and SDL3 platform, tests and
@@ -65,8 +66,11 @@ Last updated: 2026-11-19
 
 ## Open gates and known limitations
 
-1. M0 exit criteria remain unmet: complete CI enforcement (clang-tidy is still
-   advisory) and the GL loader pin.
+1. M0's Windows CRT leak criterion is open. `_CrtDumpMemoryLeaks` would report
+   SDL's own allocations because the process never calls `SDL_Quit`; the
+   tracked allocator reports zero engine leaks and Linux ASan/LSan is clean, but
+   that is a different check. Closing this needs the SDL lifecycle work in M1,
+   then a CRT leak check in the test harness.
 2. Linux is verified only headless. X11/Wayland window behavior, DPI, fullscreen
    and focus handling on a real desktop are untested.
 3. M1 parity and hardware tests are incomplete: real gamepad, visible window,
@@ -91,11 +95,23 @@ Last updated: 2026-11-19
 
 ## Next steps
 
-- Finish M0's quality gates: make clang-tidy blocking once it has stayed green,
-  and pin the OpenGL loader before M2 needs it.
+- Add the SDL shutdown lifecycle, then the Windows CRT leak check, to close the
+  last M0 criterion.
 - Remaining M1 gates: visible-window checks on both platforms, real gamepad,
   minimized behavior, and a real CPU-time measurement.
 - Do not start the renderer (M2) or add store SDKs until sequencing is agreed.
+
+## Gates closed this session
+
+- **clang-tidy is blocking.** The advisory step is gone: CI installs clang-tidy
+  22.1.8 from PyPI (same version as clang-format, so local and CI findings
+  match) and runs `tools/dev/ci_clang_tidy.sh` over all engine sources with
+  `--warnings-as-errors=*`. The header filter now covers `engine/.*`, previously
+  excluding `engine/platform` headers. It is clean today; findings are annotated.
+- **OpenGL loader pinned.** glad 2.0.8, GL 3.3 core, no extensions, generated
+  once and vendored in `third_party/glad/` (ADR-0010). Builds as
+  `eng::gl_loader`; it needs no Python or network. The root project now enables
+  the C language because this loader and SDL are C.
 
 ## CI fixes found by the first Linux run
 

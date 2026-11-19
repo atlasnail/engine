@@ -93,8 +93,16 @@ ctest --preset linux-debug
 ```
 
 Sanitizers: `linux-asan`. Formatting: `python tools/check_format.py`
-(`--fix` rewrites); run it through `tools\dev\msvc_env.bat` on Windows so the
-Visual Studio clang-format is found.
+(`--fix` rewrites); run it through `tools\dev\msvc_env.bat` on Windows so
+a clang-format is found. CI uses pinned PyPI builds, currently 22.1.8 for both
+clang-format and clang-tidy.
+
+Static analysis (blocking in CI, engine sources only):
+
+```bash
+bash tools/dev/ci_clang_tidy.sh build/windows-debug
+bash tools/dev/ci_clang_tidy.sh build/linux-debug
+```
 
 Benchmark (Release only, after building `windows-release`):
 
