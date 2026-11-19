@@ -1,5 +1,6 @@
 #include "eng/platform/window.hpp"
 
+#include <algorithm>
 #include <array>
 #include <mutex>
 
@@ -201,6 +202,16 @@ SDL_GamepadButton to_sdl(GamepadButton button) noexcept {
     return SDL_GAMEPAD_BUTTON_INVALID;
 }
 
+GamepadButton from_sdl_button(u8 button) noexcept {
+    for (usize i = 0; i < k_gamepad_button_count; ++i) {
+        auto value = static_cast<GamepadButton>(i);
+        if (static_cast<int>(button) == static_cast<int>(to_sdl(value))) {
+            return value;
+        }
+    }
+    return GamepadButton::count;
+}
+
 SDL_GamepadAxis to_sdl(GamepadAxis axis) noexcept {
     switch (axis) {
     case GamepadAxis::left_x:
@@ -293,7 +304,9 @@ void sync_gamepad(InputState& input) noexcept {
 
     for (usize i = 0; i < k_gamepad_axis_count; ++i) {
         const auto axis = static_cast<GamepadAxis>(i);
-        float value = static_cast<float>(SDL_GetGamepadAxis(g_gamepad, to_sdl(axis))) / 32767.0f;
+        float value =
+            std::clamp(static_cast<float>(SDL_GetGamepadAxis(g_gamepad, to_sdl(axis))) / 32767.0f,
+                       -1.0f, 1.0f);
         if (axis == GamepadAxis::left_trigger || axis == GamepadAxis::right_trigger) {
             value = value < 0.0f ? 0.0f : value;
         }
@@ -367,7 +380,9 @@ void Window::pump_events(InputState& input) {
             }
             break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
-            platform::detail::InputAccess::release_all_keys(input);
+            if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
+                platform::detail::InputAccess::release_all_keys(input);
+            }
             break;
         case SDL_EVENT_KEY_DOWN: {
             const Key key = from_sdl(event.key.scancode);
@@ -400,9 +415,25 @@ void Window::pump_events(InputState& input) {
             break;
         case SDL_EVENT_GAMEPAD_ADDED:
             open_gamepad(event.gdevice.which);
+            if (g_gamepad != nullptr && event.gdevice.which == g_gamepad_id) {
+                sync_gamepad(input);
+            }
             break;
         case SDL_EVENT_GAMEPAD_REMOVED:
-            close_gamepad(event.gdevice.which);
+            if (event.gdevice.which == g_gamepad_id && g_gamepad != nullptr) {
+                platform::detail::InputAccess::set_gamepad_connected(input, false);
+                close_gamepad(event.gdevice.which);
+            }
+            break;
+        case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+        case SDL_EVENT_GAMEPAD_BUTTON_UP:
+            if (g_gamepad != nullptr && event.gbutton.which == g_gamepad_id) {
+                const GamepadButton button = from_sdl_button(event.gbutton.button);
+                if (button != GamepadButton::count) {
+                    platform::detail::InputAccess::set_gamepad_button(
+                        input, button, event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+                }
+            }
             break;
         default:
             break;

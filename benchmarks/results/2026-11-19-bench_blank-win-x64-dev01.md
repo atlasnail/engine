@@ -41,9 +41,14 @@ not prove the 1.0 budgets on low-end hardware.
 
 ### Unlimited throughput (no limiter)
 
+**Review correction:** these samples are elapsed time between frame starts,
+not isolated CPU time. The sample cap retains only the first 200,000 frames;
+the output does not establish CPU p99 for the full measurement interval or the
+M1 F1 gate. The numeric observation below is retained as historical data.
+
 | Metric | Target (Tier A) | Measured (`dev-01`) | Verdict (provisional) |
 | --- | --- | --- | --- |
-| Empty frame CPU p99 (F1) | ≤ 0.3 ms | < 0.001 ms (rounded to 0.000) | pass (provisional) |
+| Frame-start interval p99 | F1 CPU ≤ 0.3 ms | < 0.001 ms (rounded to 0.000) | F1 not verified |
 | Empty frame max | — | 0.227 ms | — |
 | Dropped fixed steps | 0 | 0 | pass |
 | Private memory at exit | ≤ 60 MB | 8.8 MB (includes the 200k-sample vector) | pass (provisional) |

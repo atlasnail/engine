@@ -1,7 +1,7 @@
 # Start here: how this project works
 
 This guide is for someone who wants to understand the code without being a C++
-expert. It explains what exists today (milestone M0), how to build it, what each
+expert. It explains what exists today (M0 foundations and M1 work), how to build it, what each
 part does, and the C++ ideas the code uses. It is updated as the engine grows.
 
 If you only read one section, read [Build and run](#build-and-run) and
@@ -11,20 +11,20 @@ If you only read one section, read [Build and run](#build-and-run) and
 
 ## What exists today
 
-There is no game window yet. M0 is the foundation:
+A basic game window and loop exist. M0 and M1 remain unverified on Linux:
 
 | Piece | What it does | Where |
 | --- | --- | --- |
 | Build system | Turns source files into libraries, tests and a benchmark | `CMakeLists.txt`, `CMakePresets.json`, `cmake/` |
 | `eng_core` | Math, errors, logging, memory tracking, time, fixed-step timing | `engine/core/` |
 | `eng_platform` | Window, OS events, input, application loop, file system; wraps SDL | `engine/platform/` |
-| Tests | 40 cases that check the core and platform on every build | `tests/` |
+| Tests | Core and platform test cases, run explicitly via CTest | `tests/` |
 | Benchmark | `bench_blank`: measures an empty frame | `benchmarks/` |
 | Tooling | Formatting, static analysis, CI | `tools/`, `.clang-format`, `.clang-tidy`, `.github/workflows/ci.yml` |
 | Documentation | Plan, architecture, rules, decisions, this guide | `docs/`, `AGENTS.md`, `README.md` |
 
-The first visual result (a window with a loop and input) works. The renderer,
-and with it anything you can see inside the window, is milestone M2.
+The window, loop and input exist; an optional diagnostic text display can draw
+its own frame. The game renderer remains planned for M2.
 
 ---
 
@@ -122,7 +122,7 @@ Headers: the *interface* of the core. Other code includes these.
 Implementations (`.cpp`). Each one is compiled once into `eng_core`.
 
 - `log.cpp` — formats records into a fixed buffer, then calls the sink. It uses
-  a mutex so log calls from different threads do not interleave mid-line.
+  a mutex for sink selection; sink callbacks can run concurrently and must synchronize.
 - `memory.cpp` — a thin layer over `malloc`/`_aligned_malloc` that records size,
   tag and a magic number before the returned pointer. `deallocate` reads that
   header back. Counters are atomics because several threads may allocate.
@@ -248,7 +248,8 @@ app.value()->run(
 What happens each iteration in `engine/platform/src/app.cpp`:
 
 1. `pump_events` clears one-frame input edges (pressed/released, mouse delta,
-   wheel) and translates every pending SDL event.
+   wheel), translates every pending SDL event, and records each button change
+   in order. Named actions keep those changes until a fixed update consumes them.
 2. The frame's duration goes into `FixedTimestep`, which returns 0..8 fixed
    steps. Gameplay never sees a variable `dt`, so behaviour is stable.
 3. `render(alpha)` is called once, where `alpha` is the fraction of the next
@@ -264,6 +265,64 @@ are dropped and counted.
 A game should not call `SDL_*` directly. If a feature is missing, add it to
 `eng_platform` and expose an engine type.
 
+## Actions, logging, and the diagnostic display
+
+Bindings are startup data: bind one named action to one or more engine-owned
+buttons. `App` updates the map once after each event pump; no JSON format or
+persistent remapping is implemented. For example:
+
+```cpp
+auto& actions = app.value()->actions();
+if (actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_error() ||
+    actions.bind("jump", eng::ActionBinding::gamepad(eng::GamepadButton::south)).is_error()) {
+    // Report invalid configuration or capacity exhaustion.
+}
+// In a callback: actions.down("jump"), actions.pressed("jump"), etc.
+```
+
+There are at most 32 actions and 8 bindings per action; names are copied and are
+at most 63 bytes. Buttons are combined with OR, so an action only releases when
+every bound button is up.
+
+`App` records each button change in the order it happened, keeps those changes
+until the game uses them, and hands one change per action to each fixed update.
+That fixes two old bugs: a quick tap was lost when a frame ran no fixed update,
+and the same press was seen again by every fixed update in a frame. Two quick
+taps now produce two presses and two releases, in order. The queues are fixed
+size; if input arrives far faster than it is consumed, `run` stops with an
+error rather than quietly throwing events away.
+
+Edges are only valid during the fixed update that receives them. The raw
+`App::input()` state is still frame-scoped and is meant for drawing, not for
+gameplay decisions. Axis bindings, text input and saved/remappable controls are
+not implemented yet.
+
+To enable file logging, include `eng/platform/file_log.hpp`, call
+`FileLog::open("engine.log", 1024 * 1024, 3)`, check the result, then install
+`set_log_sink(&eng::FileLog::sink, log.get())`. Records also go to stderr and
+are flushed to the OS after each write, but this is **not** a durable sync or
+crash handler. Check `log->status()` for write failures. Stop all logging
+threads, restore `set_log_sink(nullptr, nullptr)`, and only then destroy the log;
+callbacks already in flight are not waited for. Rotation overwrites the oldest
+backup; use a dedicated log path. File logging does disk I/O and is not suited
+to the frame or audio hot path.
+
+`AppConfig::frame_stats_overlay = true` shows frame rate, frame interval,
+update time, fixed steps and dropped steps. It works in two ways:
+
+- On its own, it uses SDL's software renderer. That clears the window and draws
+  only the text, so it is for benchmarks and debugging before a game renderer
+  exists.
+- With a `StatsDisplay` callback passed to `run`, the game renderer stays in
+  charge. Draw the game in the render callback without presenting, then draw
+  the supplied text there and present. The text pointer is only valid during
+  the call; copy it if you need to keep it.
+
+Returning an error from the callback stops the loop with a nonzero exit code.
+The readout is off by default. Try `bench_blank --visible --overlay`, and do not
+use those numbers as baseline measurements. It has been exercised in a hidden
+window on Windows only, so the actual on-screen look has not been reviewed.
+
 ## Measuring an empty frame
 
 After building `windows-release` (or `linux-release`):
@@ -272,8 +331,9 @@ After building `windows-release` (or `linux-release`):
 build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1
 ```
 
-It prints p50/p99 frame time, dropped steps and process memory. The unlimited
-mode (`--no-limit`) measures pure loop overhead; paced mode checks the limiter.
+It prints p50/p99 frame-start intervals, dropped steps and process memory. The
+unlimited mode (`--no-limit`) observes elapsed intervals, not isolated CPU time;
+its sample cap can exclude later frames. Paced mode checks the limiter.
 Targets and the recording format are in `docs/performance.md`. Numbers are only
 meaningful from a Release build, and the machine plus commit must be recorded.
 
@@ -312,8 +372,8 @@ file or a lost audio device.
 
 Call `ENG_LOG_INFO("render", "loaded %d sprites", count)`. The category is a
 short static string. Tests install their own sink, so they can assert on records
-without parsing stderr. In M1 the default sink gains a rotating file; the API
-does not change.
+without parsing stderr. An opt-in platform file sink also writes to stderr and
+rotates files. Stop logging threads and restore the default sink before destroying it.
 
 ### Time
 

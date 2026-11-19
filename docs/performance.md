@@ -71,7 +71,7 @@ Targets are ceilings for the engine on Tier A. A game with heavier content can e
 
 ## 4. Benchmark suite
 
-Each benchmark is a separate driver under `benchmarks/`, selectable by name, headless where possible, emitting CSV + a summary line.
+Each benchmark is planned as a separate driver under `benchmarks/`. Only `bench_blank` exists so far. Its elapsed frame-start intervals are not isolated CPU measurements; F1 remains unverified, and its fixed sample cap may omit most frames in an unlimited run.
 
 | Benchmark | What it does | Metrics |
 | --- | --- | --- |

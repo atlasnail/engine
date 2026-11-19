@@ -9,6 +9,12 @@ releases may contain breaking changes, and they are always described below.
 
 ### Added
 
+- MIT license, selected in `QA.md`.
+- Fixed-capacity named digital action bindings for keyboard, mouse and gamepad;
+  opt-in rotating file/console log sink and a frame stats display.
+- `StatsDisplay` callback so the frame readout can be drawn by the game renderer
+  instead of a separate software renderer.
+- Planning notes for optional Steam and GOG integrations without introducing SDKs.
 - SDL 3.4.20 pinned by URL and SHA-256 and built statically inside `engine/platform`.
 - `eng_platform`:
   - window creation, OS event pump, resize/focus/minimize/fullscreen handling;
@@ -27,10 +33,22 @@ releases may contain breaking changes, and they are always described below.
 - The first CMake configure now downloads SDL; offline builds reuse
   `build/<preset>/_deps/`.
 
+### Fixed
+
+- Action edges were lost when a frame ran no fixed update and repeated when a
+  frame ran several. Button changes are now queued and delivered one per fixed
+  update, in order. Gamepad buttons are event-driven, so quick taps are no
+  longer missed between polls.
+- Gamepad disconnect now reports held-button releases; stick readings are clamped.
+- Reject non-finite app timing values and correct milestone/benchmark claims.
+
 ### Notes
 
 - OpenGL context creation moved to M2 with the renderer so headless window tests
   do not require a GPU.
+- Input queues are fixed size (256 raw button changes per pump, 128 pending
+  changes per action) and stop the loop with an error on overflow rather than
+  dropping events.
 - Baseline numbers are from `dev-01`, not Tier A hardware; see
   `benchmarks/results/2026-11-19-bench_blank-win-x64-dev01.md`.
 
@@ -72,4 +90,4 @@ yet; this is the dependency-free core the rest of the engine builds on.
 - Linux builds are configured in CI but have not been run locally on this
   machine (no WSL/Docker/native Linux toolchain available). See
   `docs/status.md`.
-- Project name and license are still open; see `QA.md`.
+- At that point the project name and license were open; see the Unreleased entry for the later decision.

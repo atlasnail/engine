@@ -6,6 +6,7 @@
 add_library(eng_platform STATIC
     src/app.cpp
     src/fs.cpp
+    src/file_log.cpp
     src/input.cpp
     src/window.cpp
 )

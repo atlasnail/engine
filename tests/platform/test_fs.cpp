@@ -9,7 +9,8 @@
 namespace {
 
 std::filesystem::path test_directory() {
-    return std::filesystem::temp_directory_path() / "eng_fs_test";
+    // CTest runs from the build directory; keep test artifacts inside the project.
+    return std::filesystem::current_path() / "eng_fs_test";
 }
 
 void reset_test_directory() {
@@ -93,4 +94,12 @@ TEST_CASE(fs_executable_directory_exists) {
     REQUIRE(directory.is_ok());
     CHECK(!directory.value().empty());
     CHECK(eng::fs::exists(directory.value()));
+}
+
+TEST_CASE(fs_create_directories_rejects_existing_file) {
+    reset_test_directory();
+    const std::string path = eng::fs::join(test_directory().string(), "file.txt");
+    REQUIRE(eng::fs::write_text_file(path, "file").is_ok());
+    CHECK(eng::fs::create_directories(path).is_error());
+    cleanup_test_directory();
 }

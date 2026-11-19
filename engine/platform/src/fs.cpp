@@ -122,6 +122,8 @@ Status write_text_file_atomic(std::string_view path, std::string_view contents) 
 
     const Status written = write_text_file(temp, contents);
     if (written.is_error()) {
+        std::error_code ignored;
+        std::filesystem::remove(to_path(temp), ignored);
         return written;
     }
 
@@ -144,12 +146,12 @@ Status create_directories(std::string_view path) {
     const std::filesystem::path fs_path = to_path(path);
 
     std::error_code error;
-    if (std::filesystem::exists(fs_path, error) && !error) {
+    if (std::filesystem::is_directory(fs_path, error) && !error) {
         return Status::ok();
     }
-
+    error.clear();
     std::filesystem::create_directories(fs_path, error);
-    if (error && !std::filesystem::exists(fs_path)) {
+    if (error) {
         ENG_LOG_ERROR("fs", "could not create directory %s: %s", std::string(path).c_str(),
                       error.message().c_str());
         return Status::failure(ErrorCode::io_failure, "could not create directory");

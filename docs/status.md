@@ -1,119 +1,100 @@
 # Status and handoff
 
-**This file is the single source of truth for "where are we now".** Every work session updates it. Keep it short, factual and current; move detail into the linked documents.
+This is the source of truth for current implementation and verification.
 
 Last updated: 2026-11-19
 
 ## Current position
 
-| Field | Value |
-| --- | --- |
-| Phase | **M1 platform layer implemented; Windows verified; Linux gate pending CI** |
-| Milestone | **M1 — Platform, window, loop and input** (partially complete, see below) |
-| Engine version | `0.1.0-dev` |
-| Code present | `eng_core`, `eng_platform` (SDL3), 40 test cases, `bench_blank` |
-| Platforms verified | **Windows x64 only** (MSVC Debug/Release, Clang Debug) |
-| Linux | Presets and CI written; **never compiled on this machine** (no WSL/Docker/native toolchain) |
-| Benchmarks | `bench_blank` measured on `dev-01`; **not a Tier A gate run** |
+- **M0 is not complete:** Windows builds and tests exist, but Linux has never
+  been verified, CI has not run, and several roadmap quality gates remain open
+  (including Linux sanitizers, required CI enforcement and a pinned GL loader).
+- **M1 is in progress:** platform work was started before M0's gates were met.
+  This is not an approval to declare M0 or M1 complete, or to start M2.
+- Version `0.1.0-dev`; implementation: core and SDL3 platform, tests and
+  `bench_blank`. No game renderer or audio.
+- `main` is pushed to `https://github.com/atlasnail/engine.git`; the M1 review
+  commit is local until pushed. Linux presets/CI are configured but have never
+  been run.
 
-## What works (verified 2026-11-19)
+## Latest session: input delivery and stats display
 
-- CMake presets fetch and build SDL 3.4.20 (pinned URL + SHA-256) on Windows.
-- **30 core tests / 186 checks** and **10 platform tests / 43 checks** pass in
-  Debug and Release with MSVC; core also passes with Clang 22.1.3.
-- Window creation (hidden or visible), event pump, resize/minimize/focus queries,
-  fullscreen toggle, title changes, clean destruction.
-- Keyboard, mouse (position, buttons, wheel) and gamepad state API. Gamepad code
-  is compiled but has not been exercised with hardware.
-- Fixed-step accumulator with catch-up cap and dropped-step accounting.
-- Application loop: fixed updates, render callback with interpolation alpha,
-  optional 60 FPS limiter (SDL high-resolution delay), optional per-frame CSV.
-- Filesystem: UTF-8 paths, read/write, atomic replace, directory creation,
-  executable directory.
-- `bench_blank` (Release, hidden window, `dev-01`): empty-frame p99 **< 0.001 ms**
-  unlimited, paced p99 **17.19 ms** at 60 FPS target (all frames within ±10 %),
-  **0 dropped steps**, **4.4 MB** private memory at exit. Record:
-  `benchmarks/results/2026-11-19-bench_blank-win-x64-dev01.md`.
-- Formatting and clang-tidy clean on project code.
+- Action edges are now queued from ordered button events and delivered one per
+  fixed update, so a frame with no fixed step no longer loses a tap and a frame
+  with several steps no longer repeats one. Keyboard, mouse and gamepad share
+  the path; two taps in one pump produce two press/release pairs.
+- Gamepad buttons now also arrive as events instead of only polling, so a quick
+  tap between pumps is captured. Disconnect still releases held buttons.
+- Queues are fixed size and report overflow instead of dropping events. `App::run`
+  stops with a nonzero code if input or the stats display fails.
+- `frame_stats_overlay` shows FPS, frame and update times, steps and dropped
+  steps. A `StatsDisplay` callback lets a game renderer draw that text and
+  present, instead of a second renderer clearing the window; without a callback
+  the old standalone software renderer is used.
+- Tests added for ordering, taps with zero or several steps, overlapping
+  bindings, queue overflow, the callback after game rendering, and callback
+  failure.
 
-## Not done yet (M1 remainder and M2 boundary)
+## Earlier M1 work in this branch
 
-- Data-driven action mapping (keys → named actions); key state exists, actions do not.
-- Rotating file logging sink (console sink only; `fs` primitives are ready).
-- On-screen frame stats overlay (CSV logging exists).
-- OpenGL context creation: deliberately moved to M2 with the renderer, so window
-  creation works on headless CI.
-- 60-second benchmark protocol on Tier A hardware; full F6/F7 measurement.
-- Linux build/test (CI or local toolchain).
-- Gamepad verification with real hardware.
-- CI has never run; push is blocked on GitHub credentials (see below).
+- MIT license (`LICENSE`, copyright Dylan Alexander); name stays `engine`/`eng`.
+- Fixed-capacity named digital actions; opt-in rotating file log sink; standalone
+  frame stats display; gamepad disconnect fix; non-finite timing rejected;
+  directory creation on a file rejected; temporary file cleanup on write failure;
+  corrected M0/benchmark claims; storefront integration planning in the backlog.
+- `QA.md` holds the user's answers and is kept as-is.
 
-## Environment (verified)
+## Verification
 
-| Tool | Version / path |
-| --- | --- |
-| Visual Studio | 2026 Community (`18`), MSVC toolset **14.52.37025** selected by vcvars |
-| CMake / Ninja | **4.3.1-msvc1** / **1.13.2** (bundled with VS) |
-| Clang / format / tidy | **22.1.3** (bundled with VS) |
-| SDL | **3.4.20**, static, fetched by CMake into `build/<preset>/_deps/` |
-| Git / Python | 2.56.0 / 3.11 |
-| Linux | none locally; CI targets `ubuntu-24.04` |
+- Windows MSVC Debug: build clean, CTest `eng_tests` and `eng_platform_tests`
+  pass, including the new input and stats tests. Formatting check passes.
+- Not verified: Linux, real controller hardware, real Clang build this session,
+  sanitizers, CRT leak gate, visible-window appearance of the stats readout,
+  and any Tier A performance gate.
+- Release benchmark from the previous session (overlay, file log and actions
+  disabled): `dev-01` paced p99 17.491 ms, 58.9 FPS, 0 dropped steps, 4.5 MB
+  exit private bytes. One short run, not a gate; see
+  `benchmarks/results/2026-11-19-bench-blank-review-win-x64-dev01.md`.
+- `bench_blank` measures elapsed frame-start intervals, not isolated CPU time,
+  and its unlimited run samples only the first 200,000 frames. F1 is unverified.
 
-## Next tasks (in order)
+## Open gates and known limitations
 
-1. Push to `https://github.com/atlasnail/engine.git` (credentials needed) and get
-   Windows + Linux CI green. Linux is the remaining platform gate.
-2. Designate or borrow a **Tier A** machine (4c/8t, integrated GPU, 8 GB) and run
-   the 60-second protocol; current numbers are a dev baseline only.
-3. Finish M1: action mapping, file log sink, frame-stats overlay; test a real
-   gamepad.
-4. Start M2: OpenGL 3.3 context + sprite renderer, then `bench_sprites` (F2/F3),
-   `bench_startup` (F9), and visual scaling tests.
-5. Keep `benchmarks/reference-hardware.md` current before any gated run.
+1. GitHub CI has not run. Verify Windows and Linux, including sanitizer and
+   format jobs, on the pushed revision.
+2. M0 exit criteria remain unmet: fresh Linux build/tests, sanitizer/leak
+   checks, complete CI enforcement (tidy is advisory), and the GL loader pin.
+3. M1 parity and hardware tests are incomplete: real gamepad, visible window,
+   fullscreen, focus, DPI/minimize behavior, Linux display drivers, shutdown.
+   Window tests skip when no video driver is available.
+4. M1's GL context, clear and VSync need the later renderer; no approved
+   roadmap exception is recorded. Minimized windows may spin if frame limiting
+   is disabled.
+5. Fixed-step input keeps at most 128 pending changes per action and 256 raw
+   button changes per pump, then fails explicitly. Dropped fixed steps mean
+   those simulation steps do not consume input; the queue is not a replay log.
+   Mouse movement and wheel remain frame-scoped. SDL and the selected gamepad
+   are process-global; no SDL_Quit lifecycle is implemented.
+6. Per-frame tracked-allocation claims do not cover ordinary STL/SDL allocation;
+   no comprehensive allocation audit was done. CSV logging uses a stream.
+7. Atomic replacement is not power-loss durable: file and directory sync are
+   not implemented. A single writer per path is assumed.
+8. Tier A hardware and the 60-second gate are unavailable. Rework CPU timing and
+   sampling before claiming F1.
+9. `Result<T>` error messages are non-owning. Existing code may still allow
+   allocation/standard-library exceptions across boundaries.
 
-## Decisions made (2026-11-19, M1)
+## Next steps
 
-| Decision | Why | Recorded |
-| --- | --- | --- |
-| SDL 3.4.20, static, URL + SHA-256 pin | Exact, auditable, offline after first configure | `third_party/README.md` |
-| GL context deferred from M1 to M2 | Window creation must work headless; renderer owns GL | this file, roadmap note |
-| Own `Key`/`GamepadButton` enums, SDL types hidden | Keeps backend swappable and public headers clean | `input.hpp` |
-| One gamepad at a time | Simplest useful behavior; multi-pad is backlog | `window.cpp` |
-| Frame limiter uses `SDL_DelayNS` | Better pacing than `sleep_for` on Windows | `app.cpp` |
-| Benchmark samples capped at 200k | Keeps memory small while p99 stays stable | `bench_blank.cpp` |
-| `App` callbacks are `std::function`, set before run | No per-frame allocations or registration churn | `app.hpp` |
+- Watch the first CI run and fix what it reports, without treating a configured
+  workflow as a pass.
+- Finish M0's quality gates, then the remaining M1 gates: visible-window checks,
+  real gamepad, minimized behavior, and a real CPU-time measurement.
+- Do not start the renderer (M2) or add store SDKs until sequencing is agreed.
 
-## Open questions
+## Historical context
 
-`QA.md` still needs: license, engine name, Linux verification route, review
-cadence. Working name remains `engine`; no `LICENSE` file yet.
-
-## Known issues and limitations
-
-- **Push blocked**: no stored GitHub credentials (HTTPS cannot prompt in this
-  harness, no SSH key). Local `main` has the commits; run
-  `git push -u origin main` once authenticated.
-- Linux has never been built locally; do not cite Linux support as verified.
-- Numbers come from `dev-01` (Ryzen 9 9950X3D, RX 9070 XT), far above Tier A.
-- Gamepad input compiles but is untested with a device.
-- No action mapping, file log sink or stats overlay yet.
-- `Result<T>` error messages remain non-owning `const char*`.
-- Benchmark p99 prints 0.000 because the loop is faster than the printed 1 µs
-  resolution; the raw CSV has microsecond values.
-
-## Benchmark snapshot
-
-| Metric | Target | `dev-01` | Record |
-| --- | --- | --- | --- |
-| F1 empty-frame p99 (unlimited) | ≤ 0.3 ms | < 0.001 ms | 2026-11-19 `bench_blank` |
-| F6 paced frames within ±10 % | ≥ 99.5 % | 100 % of 296 sampled frames | same |
-| F7 spikes > 2× target | 0 | 0 | same |
-| M-1 private memory, empty app | ≤ 60 MB | 4.4 MB | same |
-
-## Session log (newest first)
-
-| Date | Summary |
-| --- | --- |
-| 2026-11-19 | M1 platform layer: pinned SDL 3.4.20; window/events, input (keyboard/mouse/gamepad), fixed step, app loop, filesystem, `bench_blank`; 40 tests pass on Windows; baseline measured on `dev-01`. |
-| 2026-11-19 | M0: build system, core (math, Result, logging, tracked memory, time), 25 tests, formatting/tidy, CI, guide. |
-| 2026-11-19 | Planning set: README, AGENTS, roadmap, architecture, performance, conventions, ADRs, backlog. |
+Prior Windows tests covered 30 core / 186 checks and 10 platform / 43 checks.
+SDL 3.4.20 is pinned by URL and SHA-256. The earlier developer-machine baseline
+is `benchmarks/results/2026-11-19-bench_blank-win-x64-dev01.md`, corrected to
+identify its elapsed-time limitation. No Linux or Tier A result is implied.

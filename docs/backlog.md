@@ -15,6 +15,32 @@ Ideas that are deliberately **not** in the 1.0 plan. Putting something here is n
 | Built-in storefront/achievements/cloud saves | Platform integrations with ongoing maintenance cost; not engine concerns. |
 | Scripting languages beyond Lua for 1.0 | Each binding multiplies testing; the C ABI is the extension path. |
 
+## Storefront and multiplayer integration planning (not implemented)
+
+Steam achievements, Steam multiplayer and GOG Galaxy achievements are future
+**optional game-side adapters**, not engine-core requirements. The existing 1.0
+non-goals remain unchanged; promotion to a supported engine feature requires an
+ADR and roadmap decision. No SDK, dependency, credentials or service is added now.
+
+- Games own neutral achievement identifiers and their mapping to each store's
+  identifiers. Adapters translate platform callbacks and errors without exposing
+  SDK types to engine core or stable C/C++ interfaces.
+- Offline or unsupported clients must still run; adapters should report
+  unavailable/pending/failure explicitly and reconcile pending unlocks when
+  online. Do not promise cross-store synchronization without a game-owned policy.
+- Steam multiplayer involves lobby discovery, invites, transport, identity,
+  authentication, disconnect/reconnect and abuse handling; it is separate from
+  achievements and cannot be inferred from a common storefront abstraction.
+  Games own authoritative rules and security, and choose a transport deliberately.
+- At implementation time evaluate each vendor's current SDK terms, distribution
+  rules, supported Windows/Linux binaries, callback threading, lifecycle,
+  achievement synchronization, network privacy/security and entitlement testing.
+  Pin SDK versions only after an ADR. Avoid sending player identifiers or game
+  data to third parties without an explicit game-level privacy policy.
+- Plan fakes/offline/error tests and real platform integration tests with test
+  accounts and permitted app IDs; document differences across stores and OSes.
+  No portable provider API or performance promise is committed yet.
+
 ## Deferred, plausible later (P2+)
 
 | Idea | Trigger to consider | Notes |

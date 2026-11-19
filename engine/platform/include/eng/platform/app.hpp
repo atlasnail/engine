@@ -27,6 +27,9 @@ struct AppConfig {
     double target_fps = 60.0;
     // Optional CSV path: frame index, frame ms, update ms, fixed steps.
     const char* frame_log_path = nullptr;
+    // Draw frame stats with a caller-supplied display callback, or with a
+    // standalone software renderer if no callback is supplied. Off by default.
+    bool frame_stats_overlay = false;
 };
 
 struct FrameInfo {
@@ -40,6 +43,9 @@ public:
     using UpdateFn = std::function<void(double dt)>;
     using RenderFn = std::function<void(double interpolation_alpha)>;
     using FrameObserver = std::function<void(const FrameInfo& info)>;
+    // Called after game rendering with short-lived text. Draw it using the game
+    // renderer and present that renderer here. Return an error on failure.
+    using StatsDisplay = std::function<Status(const char* text)>;
 
     static Result<std::unique_ptr<App>> create(const AppConfig& config);
     ~App();
@@ -50,7 +56,9 @@ public:
     App& operator=(App&&) = delete;
 
     [[nodiscard]] Window& window() noexcept { return *window_; }
+    // Raw input is frame-scoped; use actions() in fixed updates.
     [[nodiscard]] InputState& input() noexcept { return input_; }
+    [[nodiscard]] ActionMap& actions() noexcept { return actions_; }
     [[nodiscard]] u64 frame_count() const noexcept { return frame_count_; }
     [[nodiscard]] u64 dropped_steps() const noexcept;
 
@@ -58,17 +66,25 @@ public:
     void quit() noexcept { quit_requested_ = true; }
 
     // Runs until the window closes or quit() is called. Can only be called once;
-    // returns 0 on a normal exit.
+    // returns 0 on a normal exit, nonzero on input overflow or display failure.
+    // When stats are enabled and a display callback is supplied, the render
+    // callback must draw without presenting; the display callback draws stats
+    // and presents. Without one, a standalone software renderer owns the window.
     int run(const UpdateFn& fixed_update, const RenderFn& render,
-            const FrameObserver& observer = {});
+            const FrameObserver& observer = {}, const StatsDisplay& display = {});
 
 private:
     App(std::unique_ptr<Window> window, const AppConfig& config) noexcept;
 
     std::unique_ptr<Window> window_;
     InputState input_;
+    ActionMap actions_;
+    void* overlay_renderer_ = nullptr;  // SDL renderer, owned privately
     AppConfig config_;
     u64 frame_count_ = 0;
+    double stats_seconds_ = 0.0;
+    double stats_fps_ = 0.0;
+    unsigned stats_frames_ = 0;
     bool quit_requested_ = false;
     bool has_run_ = false;
     u64 dropped_steps_ = 0;

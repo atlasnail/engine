@@ -1,9 +1,9 @@
 // bench_blank: measures the cost of an empty frame (no rendering, no game
-// logic). This is the M1 gate F1/F6/F7 and the baseline every later feature is
-// compared against.
+// logic). It observes frame-start intervals and pacing, not isolated CPU time;
+// it cannot establish the F1 CPU gate.
 //
 // Usage:
-//   bench_blank [--seconds N] [--warmup N] [--visible] [--csv PATH] [--no-limit]
+//   bench_blank [--seconds N] [--warmup N] [--visible] [--overlay] [--csv PATH] [--no-limit]
 //
 // Output is a summary on stdout; the optional CSV has one row per frame.
 // Measurement rules live in docs/performance.md.
@@ -76,6 +76,7 @@ int main(int argc, char** argv) {
     double warmup_seconds = 1.0;
     bool visible = false;
     bool limit = true;
+    bool overlay = false;
     const char* csv_path = nullptr;
 
     for (int i = 1; i < argc; ++i) {
@@ -89,10 +90,12 @@ int main(int argc, char** argv) {
             csv_path = argv[++i];
         } else if (std::strcmp(argv[i], "--no-limit") == 0) {
             limit = false;
+        } else if (std::strcmp(argv[i], "--overlay") == 0) {
+            overlay = true;
         } else {
-            std::printf(
-                "usage: %s [--seconds N] [--warmup N] [--visible] [--csv PATH] [--no-limit]\n",
-                argv[0]);
+            std::printf("usage: %s [--seconds N] [--warmup N] [--visible] [--overlay] [--csv PATH] "
+                        "[--no-limit]\n",
+                        argv[0]);
             return 2;
         }
     }
@@ -111,6 +114,7 @@ int main(int argc, char** argv) {
     config.limit_frames = limit;
     config.target_fps = 60.0;
     config.frame_log_path = csv_path;
+    config.frame_stats_overlay = overlay;
 
     eng::Result<std::unique_ptr<eng::App>> app_result = eng::App::create(config);
     if (app_result.is_error()) {
@@ -122,7 +126,7 @@ int main(int argc, char** argv) {
     eng::App* app_ptr = app.get();
 
     // Sample cap keeps an unlimited-throughput run from using tens of MB of
-    // benchmark memory; p99 over 200k frames is stable.
+    // benchmark memory; later frames are not sampled once the cap is reached.
     constexpr std::size_t k_sample_cap = 200'000;
     std::vector<double> frame_ms;
     frame_ms.reserve(

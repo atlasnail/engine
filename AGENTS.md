@@ -6,7 +6,7 @@ This file is for AI agents and new human contributors. It is deliberately short,
 
 A from-scratch, native, **2D-only** game engine for **Windows and Linux**, written in **C++20**, with Lua scripting and a C ABI for other language bindings. Priorities, in order: correctness and clarity, low memory use, high and predictable frame rate, cross-platform parity, long-term maintainability.
 
-**Current phase: planning.** No engine code exists yet. Do not invent modules, APIs, build commands or benchmark numbers. Implemented facts belong in `docs/status.md`; everything else is a plan.
+**Current phase: foundations and platform work.** M0 and M1 are not complete until their exit criteria are verified on both platforms. Implemented facts belong in `docs/status.md`; everything else is a plan.
 
 ## 2. Read order
 
@@ -62,8 +62,8 @@ Target structure; create directories only when a milestone needs them.
 
 ## 5. Build and test commands
 
-These are verified at M0 on Windows (MSVC 19.52, Clang 22.1.3) and defined for
-Linux; Linux has not run on this machine yet (see `docs/status.md`).
+These are verified on Windows (MSVC 19.52; M0 also built with Clang 22.1.3) and
+defined for Linux; Linux has not run on this machine yet (see `docs/status.md`).
 
 **Windows, Developer PowerShell for VS 2026:**
 

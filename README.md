@@ -1,16 +1,56 @@
-# 2D Engine (working title)
+# 2D engine (working name)
 
-A from-scratch, native **2D-only game engine** for **Windows and Linux**, built for tight control over frame time and memory use, high-quality audio, a simple art-asset workflow, and a codebase that humans and AI agents can maintain over years.
+This is a small game engine for making 2D games on Windows and Linux. It is
+written in C++20 and built from scratch, so the code base stays small enough to
+read and understand.
 
-**Status: M0 complete, M1 platform layer implemented.** `eng_core` and
-`eng_platform` build and their tests pass on Windows; a window opens, input and a
-fixed-step loop work, and `bench_blank` measures the frame budget. There is no
-renderer or audio yet. Linux is configured in CI but not yet verified. See
-[`docs/status.md`](docs/status.md) for the exact state.
+The working name is "engine" and the code namespace is `eng`. That is not a
+final name, just a placeholder that is easy to replace later.
 
-## Quick start (Windows)
+## What it is meant to be
 
-Open **Developer PowerShell for VS 2026**, then:
+The short version: something sturdy, not something flashy.
+
+- It should run 2D games at a steady frame rate without hogging memory.
+- It should play sound without clicks or dropouts.
+- Adding art should mean dropping a file in a folder, not running a pipeline.
+- Game logic should be writable in C++ now and Lua later.
+- Both Windows and Linux should behave the same way.
+- The code and docs should stay clear enough that a person (or an AI helper)
+  can pick the project up months later.
+
+## What works today
+
+This is early. Only the base of the engine is in place.
+
+- A window opens, handles keyboard, mouse and gamepad input, and closes
+  cleanly.
+- The main loop runs game updates on a fixed clock and drawing at whatever rate
+  the machine can manage.
+- Keyboard, mouse and gamepad buttons can be tied to named actions like "jump"
+  or "pause".
+- Logs can go to the screen and to a file that rotates when it gets big.
+- There is a small on-screen readout of frame rate and frame times, for
+  debugging.
+- Files can be read and written, including safely replacing a file.
+
+There is **no way to draw a game yet**. No sprites, no textures, no text font,
+no sound. That is the next big chunk of work. Right now the only thing that can
+draw is the debug readout.
+
+Windows is the only platform that has actually been built and tested. The Linux
+build files exist and there is a CI job for them, but nobody has run it yet, so
+do not treat Linux as working until that happens.
+
+## Building it
+
+You need CMake, Ninja, a C++20 compiler, and an internet connection the first
+time (the build downloads SDL, the library that handles windows and input).
+
+### Windows
+
+Open "Developer PowerShell for VS 2026" from the Start menu, go to the project
+folder, and run:
 
 ```powershell
 cmake --preset windows-debug
@@ -18,49 +58,99 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-From Git Bash, prefix commands with
-`cmd //c 'tools\dev\msvc_env.bat <command>'`. On Linux, use the
-`linux-debug` preset. New to C++ or this codebase? Read
-[`docs/guide/README.md`](docs/guide/README.md) first.
+If you prefer a normal shell or Git Bash, use the helper script, which finds
+Visual Studio and sets up the compiler for you:
 
-If something fails, `docs/status.md` lists verified commands, versions and known
-limitations; do not assume a command works just because it is written here.
+```bash
+cmd //c 'tools\dev\msvc_env.bat cmake --preset windows-debug'
+cmd //c 'tools\dev\msvc_env.bat cmake --build --preset windows-debug'
+cmd //c 'tools\dev\msvc_env.bat ctest --preset windows-debug'
+```
 
-## Goals
+Use `windows-release` instead of `windows-debug` for an optimized build. There
+is also `windows-clang-debug` if you want to build with Clang.
 
-| Goal | What that means in practice |
-| --- | --- |
-| Cross-platform | First-class Windows 10/11 (x64) and Linux (x64, X11 + Wayland via SDL) builds from one CMake project. No platform-specific code outside `engine/platform`. |
-| High FPS | Measured CPU frame budgets, fixed-step simulation, batched 2D rendering, zero steady-state allocations in the frame loop. |
-| Low memory | Explicit allocators (arenas/pools), asset handles instead of raw pointers, hard budgets per subsystem, leak checking in CI. |
-| Good-quality sound | 48 kHz stereo mixing, streamed music, no glitches: measured underrun and mixing-latency targets. |
-| Easy art import | Drop files into the game's asset folder, reference by name; atlas/sheet descriptors in JSON; hot reload in development. |
-| Language support | C++20 engine and game code (primary), Lua 5.4 gameplay scripting, and a stable C ABI so other languages can be bound later without touching the core. |
-| Agent-friendly | `AGENTS.md`, architecture notes, ADRs, explicit invariants, and a live [`docs/status.md`](docs/status.md) handoff file. |
-| Safe persistence | Versioned save files, atomic writes, migrations, corruption detection. |
-| Upgradeable | Semantic versioning, API stability tiers, deprecation policy, changelog, example game as a compatibility canary. |
+### Linux
 
-## Non-goals for 1.0
+```bash
+cmake --preset linux-debug
+cmake --build --preset linux-debug
+ctest --preset linux-debug
+```
 
-3D rendering, mobile/console/web targets, a full visual editor, built-in networking, a general rigid-body physics engine, and native hot-reload of game code. See [`docs/backlog.md`](docs/backlog.md) for deferred ideas.
+This has not been run yet. If it fails, the details are probably in
+`docs/status.md` under known issues.
 
-## Read in this order
+### Where the programs end up
 
-| Document | Purpose | Read when |
-| --- | --- | --- |
-| [`AGENTS.md`](AGENTS.md) | Rules, invariants and workflow for any agent or new contributor. | First. Always. |
-| [`docs/status.md`](docs/status.md) | Where the project actually is right now, and the next tasks. | Before starting any work. |
-| [`docs/guide/README.md`](docs/guide/README.md) | Beginner-friendly tour: build, code layout, the C++ concepts used. | New to C++ or this repo. |
-| [`docs/roadmap.md`](docs/roadmap.md) | Milestones M0–M9, priorities, exit criteria, performance gates. | Planning work. |
-| [`docs/architecture.md`](docs/architecture.md) | Module layout, dependency rules, core design concepts, open questions. | Designing or reviewing code. |
-| [`docs/performance.md`](docs/performance.md) | Budgets, benchmark suite, measurement protocol, regression policy. | Adding features that touch frame time or memory. |
-| [`docs/conventions.md`](docs/conventions.md) | C++/build/style/versioning/testing standards and the definition of done. | Writing code or config. |
-| [`docs/decisions/`](docs/decisions/README.md) | Accepted and proposed architecture decision records (ADRs). | Before changing a cross-cutting choice. |
-| [`docs/backlog.md`](docs/backlog.md) | Deliberately deferred ideas and the reasons. | Tempted to add scope. |
+Each build type gets its own folder, so they do not overwrite each other:
 
-## How to resume this project
+```
+build/windows-debug/bin/eng_tests.exe
+build/windows-debug/bin/eng_platform_tests.exe
+build/windows-release/bin/bench_blank.exe
+```
 
-1. Read `AGENTS.md` and `docs/status.md`.
-2. Confirm the current milestone in `docs/roadmap.md` and pick one task from its list.
-3. Follow `docs/conventions.md`; record any cross-cutting choice as an ADR.
-4. Update `docs/status.md` and, if targets moved, the relevant docs in the same change.
+The test programs take an optional name filter, for example
+`eng_tests.exe memory` runs only the memory tests.
+
+## Trying the frame counter
+
+After building `windows-release`:
+
+```bash
+build/windows-release/bin/bench_blank.exe --seconds 5 --visible --overlay
+```
+
+That opens a window with the frame readout for five seconds. Without
+`--overlay` it runs the same loop with nothing drawn, which is useful when you
+want to know how much time the loop itself takes.
+
+Do not copy the numbers from a Debug build, and do not compare numbers from
+different machines. How to measure properly is written down in
+`docs/performance.md`.
+
+## Where things live
+
+```
+engine/core/       basic pieces: math, errors, logging, memory tracking, timing
+engine/platform/   windows, input, file access, the main loop (this is the only
+                   part that talks to SDL)
+engine/public/     the API that games are meant to use (mostly still empty)
+tests/             tests for the core and platform code
+benchmarks/        small programs that measure speed, plus saved results
+docs/              plans, decisions, rules, and a beginner's guide
+games/example/     a small game to prove the engine works (not started)
+```
+
+A rule worth knowing: only `engine/platform/` is allowed to talk to the
+operating system or SDL. Everything above it uses the engine's own types. That
+keeps the messy platform code in one place.
+
+## Reading order
+
+If you are new here, read these in order:
+
+1. `docs/status.md` - what actually works right now, and what is broken.
+2. `docs/guide/README.md` - a slower walk through the code and the C++ ideas
+   used in it.
+3. `docs/roadmap.md` - the plan, milestone by milestone.
+4. `docs/architecture.md` - how the parts fit together.
+5. `AGENTS.md` - the rules for changing the code.
+
+The `docs/decisions/` folder records choices that are expensive to change later,
+and why they were made.
+
+## What it is not trying to be
+
+No 3D. No mobile, console or web builds. No level editor. No built-in physics
+engine and no built-in networking for version 1.0. Those are written down in
+`docs/backlog.md` so they do not creep into the current work.
+
+Steam and GOG achievement support is not implemented either. There is a short
+plan in `docs/backlog.md` describing how game-side adapters could work later,
+without adding any store SDK to the engine now.
+
+## License
+
+MIT. See `LICENSE`.

@@ -1,8 +1,10 @@
 #include "eng/platform/app.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <limits>
 
 #include <SDL3/SDL.h>
 
@@ -16,16 +18,25 @@ namespace eng {
 App::App(std::unique_ptr<Window> window, const AppConfig& config) noexcept
     : window_(std::move(window)), config_(config) {}
 
-App::~App() = default;
+App::~App() {
+    if (overlay_renderer_ != nullptr) {
+        SDL_DestroyRenderer(static_cast<SDL_Renderer*>(overlay_renderer_));
+    }
+}
 
 Result<std::unique_ptr<App>> App::create(const AppConfig& config) {
-    if (config.fixed_step_seconds <= 0.0) {
+    if (!std::isfinite(config.fixed_step_seconds) || config.fixed_step_seconds <= 0.0) {
         return Error{ErrorCode::invalid_argument, "fixed step must be positive"};
     }
     if (config.max_steps_per_frame <= 0) {
         return Error{ErrorCode::invalid_argument, "max steps per frame must be positive"};
     }
-    if (config.limit_frames && config.target_fps <= 0.0) {
+    // The limiter converts the target period to integer nanoseconds. Reject
+    // periods too large for that conversion, including positive subnormals.
+    constexpr double minimum_fps =
+        1'000'000'000.0 / static_cast<double>(std::numeric_limits<Uint64>::max());
+    if (config.limit_frames &&
+        (!std::isfinite(config.target_fps) || config.target_fps <= minimum_fps)) {
         return Error{ErrorCode::invalid_argument, "target fps must be positive when limiting"};
     }
 
@@ -34,19 +45,29 @@ Result<std::unique_ptr<App>> App::create(const AppConfig& config) {
         return window.error();
     }
 
-    return std::unique_ptr<App>(new App(std::move(window.value()), config));
+    auto app = std::unique_ptr<App>(new App(std::move(window.value()), config));
+    return app;
 }
 
 u64 App::dropped_steps() const noexcept {
     return dropped_steps_;
 }
 
-int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameObserver& observer) {
+int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameObserver& observer,
+             const StatsDisplay& display) {
     ENG_ASSERT(!has_run_);
     if (has_run_) {
         return 1;
     }
     has_run_ = true;
+    if (config_.frame_stats_overlay && !display) {
+        overlay_renderer_ =
+            SDL_CreateRenderer(static_cast<SDL_Window*>(window_->native_handle()), "software");
+        if (overlay_renderer_ == nullptr) {
+            ENG_LOG_ERROR("app", "could not create frame stats renderer: %s", SDL_GetError());
+            return 1;
+        }
+    }
 
     FixedTimestep timestep(config_.fixed_step_seconds, config_.max_steps_per_frame);
 
@@ -68,6 +89,11 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
 
     while (!window_->should_close() && !quit_requested_) {
         window_->pump_events(input_);
+        const Status input_status = actions_.update(input_);
+        if (input_status.is_error()) {
+            ENG_LOG_ERROR("app", "input delivery failed: %s", input_status.error().message);
+            return 1;
+        }
 
         const std::chrono::steady_clock::time_point now = Clock::now();
         const std::chrono::duration<double> delta = now - previous;
@@ -78,6 +104,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         eng::time::Stopwatch update_watch;
         const int steps = timestep.advance(frame_seconds);
         for (int step = 0; step < steps; ++step) {
+            actions_.begin_step();
             fixed_update(config_.fixed_step_seconds);
         }
         const double update_seconds = update_watch.elapsed_seconds();
@@ -85,6 +112,39 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         render(timestep.alpha());
 
         dropped_steps_ = timestep.dropped_steps();
+
+        if (config_.frame_stats_overlay) {
+            // Average over a short window so the number is readable; the raw
+            // per-frame time below still shows individual frames.
+            stats_seconds_ += frame_seconds;
+            ++stats_frames_;
+            if (stats_seconds_ >= 0.5) {
+                stats_fps_ = static_cast<double>(stats_frames_) / stats_seconds_;
+                stats_seconds_ = 0.0;
+                stats_frames_ = 0;
+            }
+            char text[256];
+            std::snprintf(text, sizeof(text),
+                          "FPS %.1f\nFRAME %.3f MS\nUPDATE %.3f MS\nSTEPS %d  DROPPED %llu",
+                          stats_fps_, frame_seconds * 1000.0, update_seconds * 1000.0, steps,
+                          static_cast<unsigned long long>(dropped_steps_));
+            if (display) {
+                const Status status = display(text);
+                if (status.is_error()) {
+                    ENG_LOG_ERROR("app", "frame stats display failed: %s", status.error().message);
+                    return 1;
+                }
+            } else {
+                auto* renderer = static_cast<SDL_Renderer*>(overlay_renderer_);
+                if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) || !SDL_RenderClear(renderer) ||
+                    !SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255) ||
+                    !SDL_RenderDebugText(renderer, 8.0f, 8.0f, text) ||
+                    !SDL_RenderPresent(renderer)) {
+                    ENG_LOG_ERROR("app", "frame stats overlay failed: %s", SDL_GetError());
+                    return 1;
+                }
+            }
+        }
 
         if (observer) {
             observer(FrameInfo{frame_seconds, update_seconds, steps});

@@ -4,7 +4,8 @@
 //
 // Design constraints:
 //   - Allocation-free on the calling thread in normal use (fixed buffer).
-//   - Safe to call from any thread; a mutex serializes records.
+//   - Safe to call from any thread; sink callbacks may run concurrently and
+//     must serialize access to their own state.
 //   - The sink is replaceable so tests can capture output. The record passed to
 //     a sink is only valid for the duration of the call.
 //   - Messages longer than k_max_message_length are truncated with a marker.
@@ -33,7 +34,9 @@ struct LogRecord {
 };
 
 // Receives every formatted record. `user_data` is whatever was passed to
-// set_log_sink(). Sinks must not throw and must not call log_message().
+// set_log_sink(). Sinks must not throw and must not call log_message(). Calls
+// can overlap. Replacing a sink does not wait for in-flight callbacks: ensure
+// logging threads have stopped before destroying user_data.
 using LogSink = void (*)(const LogRecord& record, void* user_data);
 
 inline constexpr usize k_max_message_length = 1024;

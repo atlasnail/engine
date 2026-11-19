@@ -15,7 +15,7 @@ The repository currently has no `LICENSE` file. That is deliberate: choosing a
 license is your call, and it affects what others may do with the engine and with
 games built on it.
 
-- [ ] **MIT** (recommended): short, permissive, the common choice for small
+- [x] **MIT** (recommended): short, permissive, the common choice for small
       engines and libraries. Anyone may use it commercially; you keep copyright.
 - [ ] **Apache-2.0**: permissive like MIT, plus an explicit patent grant and
       trademark language. Longer and more corporate-friendly.
@@ -33,7 +33,7 @@ games built on it.
 use `eng`. A real name affects the repository name, docs, package names, include
 paths (`eng/...`), and later the SDK layout.
 
-- [ ] **Keep `engine` / `eng` for now** (recommended until 1.0): renaming later
+- [x] **Keep `engine` / `eng` for now** (recommended until 1.0): renaming later
       is a mechanical refactor plus a note in the changelog.
 - [ ] Pick a name now (write it below); I will apply it consistently.
 
@@ -46,7 +46,7 @@ paths (`eng/...`), and later the SDK layout.
 Windows is verified locally. Linux is configured in CI and presets but has never
 been compiled on this machine (no WSL, Docker or Linux toolchain installed).
 
-- [ ] **Push and let GitHub Actions verify** (recommended): the CI workflow
+- [x] **Push and let GitHub Actions verify** (recommended): the CI workflow
       builds and tests on Ubuntu 24.04, including ASan/UBSan.
 - [ ] Install WSL2 + Ubuntu locally; I can build and test without CI.
 - [ ] Use a separate Linux machine/VM.
@@ -60,7 +60,7 @@ been compiled on this machine (no WSL, Docker or Linux toolchain installed).
 You asked me to keep working and inform you afterwards. This only matters for
 taste calls where a wrong guess would be expensive.
 
-- [ ] **Keep going autonomously; only ask for licenses, names, money or
+- [x] **Keep going autonomously; only ask for licenses, names, money or
       irreversible actions** (recommended).
 - [ ] Check in at every milestone boundary.
 - [ ] Check in more often.

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes **intended** structure. Nothing here is implemented yet. It is binding on intent: deviations require an ADR.
+This document describes the **intended** architecture. Core and parts of the platform layer exist; see `docs/status.md` for verified behavior. Planned components remain intent, not implementation.
 
 ## 1. Design principles
 

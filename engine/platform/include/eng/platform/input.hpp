@@ -13,8 +13,10 @@
 // deltas reset each pump. `down` stays true until the key/button is released.
 
 #include <array>
+#include <string_view>
 
 #include "eng/core/math.hpp"
+#include "eng/core/result.hpp"
 #include "eng/core/types.hpp"
 
 namespace eng::platform::detail {
@@ -128,6 +130,14 @@ inline constexpr usize k_mouse_button_count = static_cast<usize>(MouseButton::co
 inline constexpr usize k_gamepad_button_count = static_cast<usize>(GamepadButton::count);
 inline constexpr usize k_gamepad_axis_count = static_cast<usize>(GamepadAxis::count);
 
+// Ordered button transitions captured during a pump. Overflow is an error in App.
+struct ButtonEvent {
+    enum class Device : u8 { key, mouse, gamepad };
+    Device device{};
+    u16 code = 0;
+    bool down = false;
+};
+
 class InputState {
 public:
     [[nodiscard]] bool key_down(Key key) const noexcept;
@@ -154,6 +164,12 @@ public:
 
 private:
     friend struct platform::detail::InputAccess;
+    friend class ActionMap;
+    static constexpr usize max_button_events = 256;
+    void record(ButtonEvent::Device device, u16 code, bool down) noexcept;
+    std::array<ButtonEvent, max_button_events> events_{};
+    usize event_count_ = 0;
+    bool overflow_ = false;
 
     std::array<bool, k_key_count> key_down_{};
     std::array<bool, k_key_count> key_pressed_{};
@@ -171,6 +187,64 @@ private:
     std::array<bool, k_gamepad_button_count> gamepad_pressed_{};
     std::array<bool, k_gamepad_button_count> gamepad_released_{};
     std::array<float, k_gamepad_axis_count> gamepad_axes_{};
+};
+
+// A binding is an engine-owned device button, not an SDL code. Construct these
+// from data at startup; no allocation or parsing is performed in update().
+struct ActionBinding {
+    enum class Device : u8 { key, mouse, gamepad };
+    Device device;
+    u16 code;
+
+    static constexpr ActionBinding key(Key value) noexcept {
+        return {Device::key, static_cast<u16>(value)};
+    }
+    static constexpr ActionBinding mouse(MouseButton value) noexcept {
+        return {Device::mouse, static_cast<u16>(value)};
+    }
+    static constexpr ActionBinding gamepad(GamepadButton value) noexcept {
+        return {Device::gamepad, static_cast<u16>(value)};
+    }
+};
+
+// Fixed-capacity digital actions. App collects transitions after each pump,
+// then delivers at most one transition per action per fixed update, in order.
+// Edges are valid during that update only. Use App::input() for frame input.
+// Bind before the loop. The bounded queues fail explicitly on overflow.
+class ActionMap {
+public:
+    static constexpr usize max_actions = 32;
+    static constexpr usize max_bindings_per_action = 8;
+    static constexpr usize max_name_length = 63;
+
+    // Adds a binding, creating the action if needed. Names are copied. Returns
+    // invalid_argument for invalid/duplicate bindings or capacity exhaustion.
+    [[nodiscard]] Status bind(std::string_view name, ActionBinding binding) noexcept;
+    // Collect a pump exactly once; failure means events exceeded capacity.
+    [[nodiscard]] Status update(const InputState& input) noexcept;
+    void begin_step() noexcept;
+    [[nodiscard]] bool down(std::string_view name) const noexcept;
+    [[nodiscard]] bool pressed(std::string_view name) const noexcept;
+    [[nodiscard]] bool released(std::string_view name) const noexcept;
+
+private:
+    struct Action {
+        std::array<char, max_name_length + 1> name{};
+        std::array<ActionBinding, max_bindings_per_action> bindings{};
+        usize binding_count = 0;
+        std::array<bool, max_bindings_per_action> binding_down{};
+        static constexpr usize queue_capacity = 128;
+        std::array<bool, queue_capacity> pending{};
+        usize head = 0;
+        usize count = 0;
+        bool observed_down = false;
+        bool down = false;
+        bool pressed = false;
+        bool released = false;
+    };
+    [[nodiscard]] const Action* find(std::string_view name) const noexcept;
+    std::array<Action, max_actions> actions_{};
+    usize action_count_ = 0;
 };
 
 }  // namespace eng

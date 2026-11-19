@@ -20,6 +20,8 @@ set_tests_properties(eng_tests PROPERTIES TIMEOUT 60 LABELS "unit")
 add_executable(eng_platform_tests
     test_main.cpp
     platform/test_app.cpp
+    platform/test_actions.cpp
+    platform/test_file_log.cpp
     platform/test_fs.cpp
     platform/test_window.cpp
 )

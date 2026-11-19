@@ -6,7 +6,8 @@
 // accepts '/' as well. Conversion to native wide paths happens in the
 // implementation. Writes are explicit: a plain write can leave a partial file,
 // while write_text_file_atomic() replaces the destination only after the new
-// contents are complete.
+// contents are complete. A stream flush is not a durable fsync; power-loss
+// protection and directory syncing are not implemented.
 //
 // Atomic replace currently assumes one writer per path. The save system (M6)
 // adds locking and backups on top of these primitives.
@@ -27,7 +28,7 @@ Status write_text_file(std::string_view path, std::string_view contents);
 
 // Writes to a temporary file in the same directory, flushes it, then replaces
 // the destination. On failure the destination is left untouched and the
-// temporary file is removed.
+// removal of the temporary file is attempted.
 Status write_text_file_atomic(std::string_view path, std::string_view contents);
 
 [[nodiscard]] bool exists(std::string_view path);
