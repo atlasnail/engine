@@ -74,7 +74,8 @@ Last updated: 2026-11-19
 
 ## Verification
 
-- **CI on `46384e1` is green** (run `44599648554`). Windows (MSVC): format,
+- **CI on `46384e1` is green** (run `44599648554`), as is the docs-only
+  follow-up `3418537` (run `44600361030`). Windows (MSVC): format,
   Debug build/tests, Release build/tests. Linux (GCC 13, `ubuntu-24.04`):
   format, Debug build/tests, ASan+UBSan build/tests, Release build/tests,
   blocking clang-tidy. This run covers the SDL lifecycle: ASan+LSan on Linux
