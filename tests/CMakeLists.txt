@@ -1,4 +1,5 @@
 add_executable(eng_tests
+    main_core.cpp
     test_main.cpp
     test_fixed_step.cpp
     test_log.cpp
@@ -19,10 +20,12 @@ set_tests_properties(eng_tests PROPERTIES TIMEOUT 60 LABELS "unit")
 
 add_executable(eng_platform_tests
     test_main.cpp
+    platform/main_platform.cpp
     platform/test_app.cpp
     platform/test_actions.cpp
     platform/test_file_log.cpp
     platform/test_fs.cpp
+    platform/test_sdl.cpp
     platform/test_window.cpp
 )
 

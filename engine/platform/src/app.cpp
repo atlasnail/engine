@@ -12,11 +12,13 @@
 #include "eng/core/fixed_step.hpp"
 #include "eng/core/log.hpp"
 #include "eng/core/time.hpp"
+#include "eng/platform/sdl.hpp"
 
 namespace eng {
 
-App::App(std::unique_ptr<Window> window, const AppConfig& config) noexcept
-    : window_(std::move(window)), config_(config) {}
+App::App(std::unique_ptr<SdlSession> session, std::unique_ptr<Window> window,
+         const AppConfig& config) noexcept
+    : session_(std::move(session)), window_(std::move(window)), config_(config) {}
 
 App::~App() {
     if (overlay_renderer_ != nullptr) {
@@ -40,12 +42,22 @@ Result<std::unique_ptr<App>> App::create(const AppConfig& config) {
         return Error{ErrorCode::invalid_argument, "target fps must be positive when limiting"};
     }
 
+    // The App owns the SDL session so a plain `App::create` works on its own;
+    // callers that need SDL before or after the App acquire their own session
+    // and the reference count keeps the library alive for the union.
+    Result<SdlSession> session = SdlSession::acquire();
+    if (session.is_error()) {
+        return session.error();
+    }
+    auto held_session = std::make_unique<SdlSession>(std::move(session).value());
+
     Result<std::unique_ptr<Window>> window = Window::create(config.window);
     if (window.is_error()) {
         return window.error();
     }
 
-    auto app = std::unique_ptr<App>(new App(std::move(window.value()), config));
+    auto app =
+        std::unique_ptr<App>(new App(std::move(held_session), std::move(window.value()), config));
     return app;
 }
 

@@ -2,18 +2,16 @@
 
 #include <algorithm>
 #include <array>
-#include <mutex>
 
 #include <SDL3/SDL.h>
 
 #include "eng/core/log.hpp"
+#include "eng/platform/sdl.hpp"
 #include "input_access.hpp"
+#include "sdl_internal.hpp"
 
 namespace eng {
 namespace {
-
-std::once_flag g_sdl_once;
-ErrorCode g_init_error = ErrorCode::none;
 
 SDL_Gamepad* g_gamepad = nullptr;
 SDL_JoystickID g_gamepad_id = 0;
@@ -245,25 +243,6 @@ MouseButton to_engine_button(u8 sdl_button) noexcept {
     }
 }
 
-void initialize_sdl() {
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        g_init_error = ErrorCode::internal_error;
-        ENG_LOG_ERROR("platform", "SDL_Init(SDL_INIT_VIDEO) failed: %s", SDL_GetError());
-        return;
-    }
-    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
-        ENG_LOG_WARN("platform", "gamepad subsystem unavailable: %s", SDL_GetError());
-    }
-}
-
-Status ensure_sdl() {
-    std::call_once(g_sdl_once, initialize_sdl);
-    if (g_init_error != ErrorCode::none) {
-        return Status::failure(g_init_error, "SDL video initialization failed");
-    }
-    return Status::ok();
-}
-
 void open_gamepad(SDL_JoystickID instance_id) noexcept {
     if (g_gamepad != nullptr) {
         return;
@@ -316,6 +295,19 @@ void sync_gamepad(InputState& input) noexcept {
 
 }  // namespace
 
+namespace platform::detail {
+
+void shutdown_devices() noexcept {
+    if (g_gamepad == nullptr) {
+        return;
+    }
+    SDL_CloseGamepad(g_gamepad);
+    g_gamepad = nullptr;
+    g_gamepad_id = 0;
+}
+
+}  // namespace platform::detail
+
 struct Window::Impl {
     SDL_Window* handle = nullptr;
     bool close_requested = false;
@@ -327,9 +319,9 @@ Result<std::unique_ptr<Window>> Window::create(const WindowConfig& config) {
         return Error{ErrorCode::invalid_argument, "window size must be positive"};
     }
 
-    const Status status = ensure_sdl();
-    if (status.is_error()) {
-        return status.error();
+    if (!sdl_session_active()) {
+        ENG_LOG_ERROR("platform", "no SDL session; acquire eng::SdlSession first");
+        return Error{ErrorCode::internal_error, "no SDL session; acquire eng::SdlSession first"};
     }
 
     SDL_WindowFlags flags = 0;

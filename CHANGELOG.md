@@ -9,6 +9,13 @@ releases may contain breaking changes, and they are always described below.
 
 ### Added
 
+- `eng::SdlSession`: an explicit, reference-counted SDL lifecycle in
+  `engine/platform`. The first acquire initialises video and gamepads, the last
+  release closes devices and calls `SDL_Quit`; `App` owns one, and
+  `Window::create` now requires an active session. Replaces lazy `call_once`
+  initialisation that was never undone.
+- Windows CRT leak gate in both test executables: blocks allocated during a run
+  that are still live at the end fail the suite and are dumped to stderr.
 - glad 2.0.8 as the pinned OpenGL 3.3 core loader (`eng::gl_loader`), generated
   once and vendored; see ADR-0010. Nothing links it until the M2 renderer.
 - MIT license, selected in `QA.md`.

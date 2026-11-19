@@ -19,6 +19,8 @@
 
 namespace eng {
 
+class SdlSession;
+
 struct AppConfig {
     WindowConfig window{};
     double fixed_step_seconds = 1.0 / 60.0;
@@ -49,6 +51,7 @@ public:
     using StatsDisplay = std::function<Status(const char* text)>;
 
     static Result<std::unique_ptr<App>> create(const AppConfig& config);
+    // Shuts SDL down when this is the last object holding a session.
     ~App();
 
     App(const App&) = delete;
@@ -76,8 +79,12 @@ public:
             const FrameObserver& observer = {}, const StatsDisplay& display = {});
 
 private:
-    App(std::unique_ptr<Window> window, const AppConfig& config) noexcept;
+    App(std::unique_ptr<SdlSession> session, std::unique_ptr<Window> window,
+        const AppConfig& config) noexcept;
 
+    // Declared before the window so it is destroyed after it: SDL must outlive
+    // every window, gamepad and renderer it owns.
+    std::unique_ptr<SdlSession> session_;
     std::unique_ptr<Window> window_;
     InputState input_;
     ActionMap actions_;

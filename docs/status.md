@@ -6,19 +6,46 @@ Last updated: 2026-11-19
 
 ## Current position
 
-- **M0:** both gates that were open are now closed — clang-tidy is blocking in
-  CI over engine sources, and the OpenGL loader is pinned (glad 2.0.8, ADR-0010).
-  One exit criterion is still not met and is not claimed: a Windows CRT leak
-  check, which needs an SDL shutdown lifecycle first (see below).
-- **M1 is in progress:** platform work was started before M0's gates were met.
-  This is not an approval to declare M0 or M1 complete, or to start M2.
+- **M0 is complete on the evidence recorded below.** clang-tidy is blocking in
+  CI, the OpenGL loader is pinned (glad 2.0.8, ADR-0010), and the Windows CRT
+  leak check now fails the test run instead of being skipped. The only caveat is
+  what that check measures; see the limitation list.
+- **M1 is in progress:** SDL now has an explicit, reference-counted lifecycle
+  (`eng::SdlSession`), so shutdown is deterministic. Window, input, loop and
+  file-system work is done; the remaining M1 gates are the hardware and
+  visible-window checks, and a real CPU-time measurement.
 - Version `0.1.0-dev`; implementation: core and SDL3 platform, tests and
   `bench_blank`. No game renderer or audio.
 - `main` is pushed to `https://github.com/atlasnail/engine.git`. Linux CI has
   run and passes; it uses SDL's dummy video driver, so no real display, GPU or
   gamepad has been exercised on Linux.
 
-## Latest session: input delivery and stats display
+## Latest session: SDL lifecycle and the CRT leak gate
+
+- **`eng::SdlSession`** (`engine/platform/include/eng/platform/sdl.hpp`) owns the
+  process-wide SDL lifetime explicitly. The first `acquire()` initialises video
+  and the gamepad subsystem; the last release closes the selected gamepad and
+  calls `SDL_Quit`. It is move-only and reference counted, so an `App` and a test
+  harness can both hold one without shutting SDL down early.
+- `App` owns a session, so `App::create` still works on its own, and the session
+  is declared before the window so it is destroyed after it. `Window::create`
+  now fails with a clear error if no session is active instead of initialising
+  SDL lazily and hoping nobody noticed.
+- The lazy `std::call_once` initialisation and the `ErrorCode` global that went
+  with it are gone: initialisation failure is returned to the caller that
+  acquired the session.
+- The test binaries now have separate entry points: `tests/main_core.cpp` for the
+  core suite and `tests/platform/main_platform.cpp`, which holds one session for
+  the whole process and releases it before the leak check reports.
+- **Windows CRT leak gate** (`tests/leak_check.hpp`): both test executables
+  compare CRT heap snapshots at the start and end of the run and fail with a
+  non-zero exit code when blocks allocated during the run are still live. It is
+  Debug-only and Windows-only; elsewhere it compiles to a no-op.
+- Verified by hand: a deliberate 64-byte `malloc` in a temporary test case made
+  the platform suite exit 1 and dump the block; removing it returned both
+  suites to exit 0.
+
+## Previous session: input delivery and stats display
 
 - Action edges are now queued from ordered button events and delivered one per
   fixed update, so a frame with no fixed step no longer loses a tap and a frame
@@ -62,8 +89,8 @@ Last updated: 2026-11-19
   `tools/dev/ci_clang_tidy.sh build/windows-debug` both pass at tool version
   22.1.8 (installed from PyPI, same as CI).
 - Not verified: real Linux desktop (X11/Wayland) behavior, real controller
-  hardware, a current local Clang build, CRT leak gate, visible-window
-  appearance of the stats readout, and any Tier A performance gate.
+  hardware, a current local Clang build, visible-window appearance of the stats
+  readout, and any Tier A performance gate.
 - Release benchmark from the previous session (overlay, file log and actions
   disabled): `dev-01` paced p99 17.491 ms, 58.9 FPS, 0 dropped steps, 4.5 MB
   exit private bytes. One short run, not a gate; see
@@ -73,11 +100,12 @@ Last updated: 2026-11-19
 
 ## Open gates and known limitations
 
-1. M0's Windows CRT leak criterion is open. `_CrtDumpMemoryLeaks` would report
-   SDL's own allocations because the process never calls `SDL_Quit`; the
-   tracked allocator reports zero engine leaks and Linux ASan/LSan is clean, but
-   that is a different check. Closing this needs the SDL lifecycle work in M1,
-   then a CRT leak check in the test harness.
+1. The Windows leak check compares CRT heap snapshots taken at the start and end
+   of the test run and fails on blocks allocated during it that were never
+   freed. It therefore covers everything the tests allocate, including SDL and
+   the standard library, but it does not flag state that is alive for the whole
+   process by design (the harness registries, CRT stdio buffers). The engine's
+   tracking allocator still fails on engine allocations that are never released.
 2. Linux is verified only headless. X11/Wayland window behavior, DPI, fullscreen
    and focus handling on a real desktop are untested.
 3. M1 parity and hardware tests are incomplete: real gamepad, visible window,
@@ -90,7 +118,8 @@ Last updated: 2026-11-19
    button changes per pump, then fails explicitly. Dropped fixed steps mean
    those simulation steps do not consume input; the queue is not a replay log.
    Mouse movement and wheel remain frame-scoped. SDL and the selected gamepad
-   are process-global; no SDL_Quit lifecycle is implemented.
+   are process-global, but their lifetime is now explicit: `eng::SdlSession`
+   initialises on the first acquire and calls `SDL_Quit` on the last release.
 6. Per-frame tracked-allocation claims do not cover ordinary STL/SDL allocation;
    no comprehensive allocation audit was done. CSV logging uses a stream.
 7. Atomic replacement is not power-loss durable: file and directory sync are
@@ -102,14 +131,16 @@ Last updated: 2026-11-19
 
 ## Next steps
 
-- Add the SDL shutdown lifecycle, then the Windows CRT leak check, to close the
-  last M0 criterion.
 - Remaining M1 gates: visible-window checks on both platforms, real gamepad,
-  minimized behavior, and a real CPU-time measurement.
+  minimized behavior, a real CPU-time measurement, and the GL clear/VSync pass
+  through a real context.
 - Do not start the renderer (M2) or add store SDKs until sequencing is agreed.
 
 ## Gates closed this session
 
+- **M0 is closed.** With the CRT leak check wired into both test entry points,
+  every M0 exit criterion now has evidence on Windows locally and on Linux in
+  CI, except the caveat about what the Windows check covers (limitation 1).
 - **clang-tidy is blocking.** The advisory step is gone: CI installs clang-tidy
   22.1.8 from PyPI (same version as clang-format, so local and CI findings
   match) and runs `tools/dev/ci_clang_tidy.sh` over all engine sources with

@@ -58,7 +58,3 @@ int run_all(int argc, char** argv) {
 }
 
 }  // namespace engtest
-
-int main(int argc, char** argv) {
-    return engtest::run_all(argc, argv);
-}

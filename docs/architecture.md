@@ -188,9 +188,14 @@ Tracked here until resolved by ADR; each becomes an ADR at M0.
 
 What is actually true today, as opposed to intended:
 
-- `platform` wraps SDL 3.4.20 and exposes `Window`, `InputState`, `App` and
-  `eng::fs`. SDL types stay inside the module; the only leak is the opaque
-  `void* native_handle()` intended for the renderer backend.
+- `platform` wraps SDL 3.4.20 and exposes `Window`, `InputState`, `App`,
+  `SdlSession` and `eng::fs`. SDL types stay inside the module; the only leak is
+  the opaque `void* native_handle()` intended for the renderer backend.
+- SDL's global state has one owner: `SdlSession`. The first acquire initialises
+  video and the gamepad subsystem, the last release closes the selected gamepad
+  and calls `SDL_Quit`, and `Window::create` refuses to run without an active
+  session. `App` holds a session, so nothing above the platform layer has to
+  think about SDL's lifetime beyond not outliving its own App.
 - The OpenGL loader is pinned as glad 2.0.8, GL 3.3 core with no extensions
   (ADR-0010). It builds as `eng::gl_loader`; no engine target links it yet.
 - The OpenGL context is **not** created yet. It arrives with the M2 renderer,
