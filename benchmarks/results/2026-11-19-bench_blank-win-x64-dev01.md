@@ -4,7 +4,7 @@
 
 | Field | Value |
 | --- | --- |
-| Commit | `295aebe` (M1 platform layer, recorded 2026-11-19) |
+| Commit | `02d6d7d` (M1 platform layer; this record adds only documentation) |
 | Branch | `main` |
 | Build type | Release, MSVC 19.52, Ninja, warnings-as-errors |
 | Hardware ID | `dev-01` (Ryzen 9 9950X3D, RX 9070 XT, 32 GB, Windows 11 26200) |
