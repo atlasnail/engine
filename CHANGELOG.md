@@ -13,7 +13,8 @@ releases may contain breaking changes, and they are always described below.
 - Fixed-capacity named digital action bindings for keyboard, mouse and gamepad;
   opt-in rotating file/console log sink and a frame stats display.
 - `StatsDisplay` callback so the frame readout can be drawn by the game renderer
-  instead of a separate software renderer.
+  instead of a separate software renderer. Supplying the callback enables the
+  readout by itself.
 - Planning notes for optional Steam and GOG integrations without introducing SDKs.
 - SDL 3.4.20 pinned by URL and SHA-256 and built statically inside `engine/platform`.
 - `eng_platform`:

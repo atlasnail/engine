@@ -116,3 +116,24 @@ TEST_CASE(app_stats_callback_error_stops_loop) {
                  });
     CHECK(code != 0);
 }
+
+TEST_CASE(app_stats_callback_enables_readout_without_flag) {
+    eng::AppConfig config;
+    config.window.hidden = true;
+    config.limit_frames = false;
+    REQUIRE(!config.frame_stats_overlay);
+    auto result = eng::App::create(config);
+    REQUIRE(result.is_ok());
+    auto app = std::move(result.value());
+    int calls = 0;
+    const int code =
+        app->run([](double) {}, [](double) {}, {},
+                 [&calls, &app](const char* text) {
+                     ++calls;
+                     CHECK(std::string_view(text).find("FPS") != std::string_view::npos);
+                     app->quit();
+                     return eng::Status::ok();
+                 });
+    CHECK(code == 0);
+    CHECK(calls == 1);
+}

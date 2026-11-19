@@ -60,7 +60,10 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         return 1;
     }
     has_run_ = true;
-    if (config_.frame_stats_overlay && !display) {
+    // A callback is itself a request for the readout; the flag only selects the
+    // standalone software renderer when no callback can draw it.
+    const bool show_stats = config_.frame_stats_overlay || static_cast<bool>(display);
+    if (show_stats && !display) {
         overlay_renderer_ =
             SDL_CreateRenderer(static_cast<SDL_Window*>(window_->native_handle()), "software");
         if (overlay_renderer_ == nullptr) {
@@ -113,7 +116,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
 
         dropped_steps_ = timestep.dropped_steps();
 
-        if (config_.frame_stats_overlay) {
+        if (show_stats) {
             // Average over a short window so the number is readable; the raw
             // per-frame time below still shows individual frames.
             stats_seconds_ += frame_seconds;

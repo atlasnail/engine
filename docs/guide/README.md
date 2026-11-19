@@ -307,8 +307,10 @@ callbacks already in flight are not waited for. Rotation overwrites the oldest
 backup; use a dedicated log path. File logging does disk I/O and is not suited
 to the frame or audio hot path.
 
-`AppConfig::frame_stats_overlay = true` shows frame rate, frame interval,
-update time, fixed steps and dropped steps. It works in two ways:
+`AppConfig::frame_stats_overlay = true`, or simply passing a `StatsDisplay`
+callback to `run`, shows frame rate, frame interval, update time, fixed steps and
+dropped steps. A callback enables the readout on its own, so the flag and the
+callback cannot disagree. It works in two ways:
 
 - On its own, it uses SDL's software renderer. That clears the window and draws
   only the text, so it is for benchmarks and debugging before a game renderer
@@ -319,7 +321,7 @@ update time, fixed steps and dropped steps. It works in two ways:
   the call; copy it if you need to keep it.
 
 Returning an error from the callback stops the loop with a nonzero exit code.
-The readout is off by default. Try `bench_blank --visible --overlay`, and do not
+With no callback and the flag off, the readout costs nothing. Try `bench_blank --visible --overlay`, and do not
 use those numbers as baseline measurements. It has been exercised in a hidden
 window on Windows only, so the actual on-screen look has not been reviewed.
 

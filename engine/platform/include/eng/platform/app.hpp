@@ -27,8 +27,9 @@ struct AppConfig {
     double target_fps = 60.0;
     // Optional CSV path: frame index, frame ms, update ms, fixed steps.
     const char* frame_log_path = nullptr;
-    // Draw frame stats with a caller-supplied display callback, or with a
-    // standalone software renderer if no callback is supplied. Off by default.
+    // Draw frame stats with a standalone software renderer when no display
+    // callback is passed to run(). Passing a StatsDisplay callback enables the
+    // readout by itself, so this flag never has to agree with it. Off by default.
     bool frame_stats_overlay = false;
 };
 
@@ -67,9 +68,10 @@ public:
 
     // Runs until the window closes or quit() is called. Can only be called once;
     // returns 0 on a normal exit, nonzero on input overflow or display failure.
-    // When stats are enabled and a display callback is supplied, the render
-    // callback must draw without presenting; the display callback draws stats
-    // and presents. Without one, a standalone software renderer owns the window.
+    // Passing a display callback enables the frame readout even when
+    // frame_stats_overlay is false. In that mode the render callback must draw
+    // without presenting; the display callback draws the text and presents.
+    // Without a callback and with the flag set, a software renderer owns the window.
     int run(const UpdateFn& fixed_update, const RenderFn& render,
             const FrameObserver& observer = {}, const StatsDisplay& display = {});
 

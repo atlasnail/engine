@@ -34,7 +34,7 @@ jobs:
         run: python tools/check_format.py
 
       - name: Configure (Debug)
-        run: cmake --preset windows-debug
+        run: bash tools/dev/ci_configure.sh windows-debug
 
       - name: Build (Debug)
         run: cmake --build --preset windows-debug
@@ -43,7 +43,7 @@ jobs:
         run: ctest --preset windows-debug
 
       - name: Configure (Release)
-        run: cmake --preset windows-release
+        run: bash tools/dev/ci_configure.sh windows-release
 
       - name: Build (Release)
         run: cmake --build --preset windows-release
@@ -67,17 +67,18 @@ jobs:
       - name: Install tools and SDL build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang-tidy \
+          sudo apt-get install -y ninja-build clang-tidy pkg-config \
             libx11-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev \
             libxfixes-dev libxss-dev libasound2-dev libpulse-dev \
-            libwayland-dev libxkbcommon-dev
+            libwayland-dev libxkbcommon-dev libdecor-0-dev \
+            libdrm-dev libgbm-dev libudev-dev
           python -m pip install "clang-format==${CLANG_FORMAT_VERSION}"
 
       - name: Check formatting
         run: python tools/check_format.py
 
       - name: Configure (Debug)
-        run: cmake --preset linux-debug
+        run: bash tools/dev/ci_configure.sh linux-debug
 
       - name: Build (Debug)
         run: cmake --build --preset linux-debug
@@ -86,7 +87,7 @@ jobs:
         run: ctest --preset linux-debug
 
       - name: Configure (ASan + UBSan)
-        run: cmake --preset linux-asan
+        run: bash tools/dev/ci_configure.sh linux-asan
 
       - name: Build (ASan + UBSan)
         run: cmake --build --preset linux-asan
@@ -95,7 +96,7 @@ jobs:
         run: ctest --preset linux-asan
 
       - name: Configure (Release)
-        run: cmake --preset linux-release
+        run: bash tools/dev/ci_configure.sh linux-release
 
       - name: Build (Release)
         run: cmake --build --preset linux-release
