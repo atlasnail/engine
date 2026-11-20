@@ -2,7 +2,7 @@
 
 This is the source of truth for current implementation and verification.
 
-Last updated: 2026-11-19
+Last updated: 2026-11-20
 
 ## Current position
 
@@ -20,7 +20,29 @@ Last updated: 2026-11-19
   run and passes; it uses SDL's dummy video driver, so no real display, GPU or
   gamepad has been exercised on Linux.
 
-## Latest session: SDL lifecycle and the CRT leak gate
+## Latest session: minimized-window work (M1 gate still open)
+
+- The application loop pauses updates, rendering and presentation while the
+  window is minimized or a zero-pixel-size event is active. It continues to pump
+  input and events, sleeping 50 ms between iterations even with the frame
+  limiter disabled. On restore it resets the timestep and excludes paused time
+  rather than running catch-up steps. Renderers must handle their own target
+  size when drawing resumes; no GL render target exists yet.
+- Windows MSVC Debug and Release builds and CTest pass. A synthetic SDL zero-size
+  event followed by a restore checks that no render or update occurs during the
+  pause and no fixed-step catch-up occurs on restore. This is not a real desktop
+  minimize test; the 10-second idle-CPU check and Linux X11/Wayland verification
+  remain open. Format and clang-tidy checks pass locally.
+- On `dev-01`, Windows 11 26200, MSVC 19.52 Release, hidden window, overlay off,
+  `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1 --csv build/windows-release/minimize-before.csv`
+  and the same command with `minimize-after.csv` reported paced frame-interval
+  p99 17.346 ms before and 17.255 ms after, with
+  295 samples each, no dropped steps, and 4.4 / 4.3 MB exit private bytes.
+  These single short wall-clock runs do not measure minimized CPU or establish a
+  performance improvement, F1, or a Tier A gate; raw CSVs remain in the local
+  build directory.
+
+## Previous session: SDL lifecycle and the CRT leak gate
 
 - **`eng::SdlSession`** (`engine/platform/include/eng/platform/sdl.hpp`) owns the
   process-wide SDL lifetime explicitly. The first `acquire()` initialises video
@@ -45,7 +67,7 @@ Last updated: 2026-11-19
   the platform suite exit 1 and dump the block; removing it returned both
   suites to exit 0.
 
-## Previous session: input delivery and stats display
+## Earlier session: input delivery and stats display
 
 - Action edges are now queued from ordered button events and delivered one per
   fixed update, so a frame with no fixed step no longer loses a tap and a frame
@@ -118,8 +140,8 @@ Last updated: 2026-11-19
    fullscreen, focus, DPI/minimize behavior, Linux display drivers, shutdown.
    Window tests skip when no video driver is available.
 4. M1's GL context, clear and VSync need the later renderer; no approved
-   roadmap exception is recorded. Minimized windows may spin if frame limiting
-   is disabled.
+   roadmap exception is recorded. Minimized-window pause is implemented but
+   real desktop behavior and the 10-second idle-CPU gate are not verified.
 5. Fixed-step input keeps at most 128 pending changes per action and 256 raw
    button changes per pump, then fails explicitly. Dropped fixed steps mean
    those simulation steps do not consume input; the queue is not a replay log.

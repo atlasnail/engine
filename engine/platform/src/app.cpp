@@ -101,6 +101,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         config_.target_fps > 0.0 ? 1.0 / config_.target_fps : 0.0};
 
     std::chrono::steady_clock::time_point previous = Clock::now();
+    bool paused_for_minimize = false;
 
     while (!window_->should_close() && !quit_requested_) {
         window_->pump_events(input_);
@@ -110,7 +111,23 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
             return 1;
         }
 
+        if (window_->should_close() || quit_requested_) {
+            break;
+        }
+        if (window_->is_minimized()) {
+            paused_for_minimize = true;
+            // Continue pumping events while paused without busy-spinning, even
+            // when the normal frame limiter is disabled.
+            SDL_Delay(50);
+            continue;
+        }
+
         const std::chrono::steady_clock::time_point now = Clock::now();
+        if (paused_for_minimize) {
+            timestep.reset();
+            previous = now;
+            paused_for_minimize = false;
+        }
         const std::chrono::duration<double> delta = now - previous;
         previous = now;
 

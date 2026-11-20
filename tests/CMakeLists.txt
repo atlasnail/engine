@@ -29,7 +29,7 @@ add_executable(eng_platform_tests
     platform/test_window.cpp
 )
 
-target_link_libraries(eng_platform_tests PRIVATE eng::platform)
+target_link_libraries(eng_platform_tests PRIVATE eng::platform SDL3::SDL3-static)
 target_include_directories(eng_platform_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
 eng_apply_warnings(eng_platform_tests)

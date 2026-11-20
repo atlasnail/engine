@@ -311,6 +311,8 @@ void shutdown_devices() noexcept {
 struct Window::Impl {
     SDL_Window* handle = nullptr;
     bool close_requested = false;
+    bool minimized = false;
+    bool zero_pixel_size = false;
     bool vsync = true;
 };
 
@@ -369,6 +371,27 @@ void Window::pump_events(InputState& input) {
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
                 impl_->close_requested = true;
+            }
+            break;
+        case SDL_EVENT_WINDOW_MINIMIZED:
+            if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
+                impl_->minimized = true;
+            }
+            break;
+        case SDL_EVENT_WINDOW_RESTORED:
+            if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
+                impl_->minimized = false;
+                int width = 0;
+                int height = 0;
+                if (SDL_GetWindowSizeInPixels(impl_->handle, &width, &height) && width > 0 &&
+                    height > 0) {
+                    impl_->zero_pixel_size = false;
+                }
+            }
+            break;
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            if (event.window.windowID == SDL_GetWindowID(impl_->handle)) {
+                impl_->zero_pixel_size = event.window.data1 <= 0 || event.window.data2 <= 0;
             }
             break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
@@ -472,7 +495,8 @@ float Window::display_scale() const noexcept {
 }
 
 bool Window::is_minimized() const noexcept {
-    return (SDL_GetWindowFlags(impl_->handle) & SDL_WINDOW_MINIMIZED) != 0;
+    return impl_->minimized || impl_->zero_pixel_size ||
+           (SDL_GetWindowFlags(impl_->handle) & SDL_WINDOW_MINIMIZED) != 0;
 }
 
 bool Window::has_focus() const noexcept {

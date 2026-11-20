@@ -75,6 +75,8 @@ public:
     // frame_stats_overlay is false. In that mode the render callback must draw
     // without presenting; the display callback draws the text and presents.
     // Without a callback and with the flag set, a software renderer owns the window.
+    // Minimized or zero-pixel windows pause updates and rendering while events
+    // continue to be pumped; elapsed paused time is discarded on restore.
     int run(const UpdateFn& fixed_update, const RenderFn& render,
             const FrameObserver& observer = {}, const StatsDisplay& display = {});
 
