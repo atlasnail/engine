@@ -20,7 +20,28 @@ Last updated: 2026-11-20
   run and passes; it uses SDL's dummy video driver, so no real display, GPU or
   gamepad has been exercised on Linux.
 
-## Latest session: CI and Windows CPU-time investigation
+## Latest session: withhold Windows CPU percentiles
+
+- `bench_blank` disables its Windows `GetThreadTimes` CPU sampling, prints that
+  F1 CPU p99 is unavailable, and omits `cpu_ms` from Windows CSV output. Frame
+  intervals remain separately reported. Linux CPU sampling and its CSV column
+  are unchanged. The platform API still supports opt-in `GetThreadTimes`; this
+  benchmark no longer presents those coarse values as a usable percentile.
+- Windows MSVC 19.52 Release build and `ctest --preset windows-release -R
+  bench_blank_output` passed. The new output test exercises paced and unlimited
+  runs using SDL's dummy driver and checks the summary and CSV columns. The
+  formatting check passed. Linux has not run these changes locally; CI must
+  verify the Linux branch. No F1 or M1 gate is closed.
+- Developer measurement: Windows 11 26200, `dev-01` (Ryzen 9 9950X3D, RX
+  9070 XT, 32 GB), MSVC 19.52 Release, hidden window, overlay and CSV off.
+  `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1` reported
+  295 frames, interval p99 17.216 ms, 0 dropped steps, 5.5 MB exit private
+  bytes. `--seconds 3 --warmup 1 --no-limit` reported 12,982,570 frames,
+  interval p99 0.000 ms (1 µs buckets), 0 dropped steps, 5.7 MB. Both reported
+  CPU p99 unavailable. These single short runs are not controlled comparisons,
+  CPU measurements or Tier A gate evidence.
+
+## Previous session: CI and Windows CPU-time investigation
 
 - CI run [44764299141](https://github.com/atlasnail/engine/actions/runs/44764299141)
   for `92ccfc0` completed successfully. Linux GCC Debug, ASan+UBSan and Release

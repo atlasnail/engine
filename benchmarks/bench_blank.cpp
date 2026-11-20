@@ -162,7 +162,13 @@ int main(int argc, char** argv) {
     config.target_fps = 60.0;
     config.frame_log_path = csv_path;
     config.frame_stats_overlay = overlay;
+#if defined(_WIN32)
+    // GetThreadTimes has no guaranteed resolution suitable for short frames.
+    // Do not emit misleading per-frame CPU samples in either output or CSV.
+    config.measure_frame_cpu = false;
+#else
     config.measure_frame_cpu = true;
+#endif
 
     eng::Result<std::unique_ptr<eng::App>> app_result = eng::App::create(config);
     if (app_result.is_error()) {
@@ -174,7 +180,10 @@ int main(int argc, char** argv) {
     eng::App* app_ptr = app.get();
 
     auto frame_ms = std::make_unique<Histogram>();
-    auto cpu_ms = std::make_unique<Histogram>();
+    std::unique_ptr<Histogram> cpu_ms;
+    if (config.measure_frame_cpu) {
+        cpu_ms = std::make_unique<Histogram>();
+    }
     double warmup_elapsed = 0.0;
     double measured_elapsed = 0.0;
 
@@ -186,7 +195,9 @@ int main(int argc, char** argv) {
                                            return;
                                        }
                                        frame_ms->add(info.frame_seconds * 1000.0);
-                                       cpu_ms->add(info.cpu_seconds * 1000.0);
+                                       if (cpu_ms) {
+                                           cpu_ms->add(info.cpu_seconds * 1000.0);
+                                       }
                                        measured_elapsed += info.frame_seconds;
                                        if (measured_elapsed >= seconds) {
                                            app_ptr->quit();
@@ -216,11 +227,11 @@ int main(int argc, char** argv) {
     }
     std::printf("percentiles: 1 us buckets, lower edge; overflow >=100 ms\n");
     frame_ms->print("frame interval");
-    cpu_ms->print("main-thread CPU");
 #if defined(_WIN32)
-    std::printf("CPU clock: GetThreadTimes; scheduling-granularity accounting can quantize "
-                "short frames; p99 may be misleading\n");
+    std::printf("main-thread CPU: unavailable; GetThreadTimes is not validated for short frames; "
+                "F1 CPU p99 unavailable (no CPU samples in CSV)\n");
 #else
+    cpu_ms->print("main-thread CPU");
     std::printf("CPU clock: CLOCK_THREAD_CPUTIME_ID; main thread only\n");
 #endif
     std::printf("dropped fixed steps: %llu\n",

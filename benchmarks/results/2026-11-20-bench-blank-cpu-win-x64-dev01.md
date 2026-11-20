@@ -14,6 +14,20 @@
 - CPU measures main-thread kernel plus user time from `GetThreadTimes`, around event processing through render and stats, excluding pacing, observer and CSV writes. Windows accounting was visibly quantized: a zero percentile does not establish F1. Histograms use 1 µs buckets and include every measured frame; their lower edges are reported. Earlier output used individual frame-start intervals and retained only the first 200,000 frames.
 - F1 verdict: **not verified**. At the time of the original run, Linux verification was also outstanding; CI for `92ccfc0` has since passed headless. A validated finer Windows method, Tier A hardware and the full 60-second protocol remain outstanding.
 
+## Windows output safeguard
+
+- On the same `dev-01`, MSVC 19.52 Release, hidden window, overlay and CSV off,
+  after disabling Windows benchmark CPU sampling: `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1`
+  reported 295 measured frames, frame-interval p99 17.216 ms, zero dropped
+  steps and 5.5 MB exit private bytes. With `--seconds 3 --warmup 1 --no-limit`,
+  it reported 12,982,570 frames, interval p99 0.000 ms in 1 µs buckets, zero
+  dropped steps and 5.7 MB. Both printed CPU p99 unavailable. These are single
+  short non-gated runs; the changed instrumentation and differing modes prevent
+  interpreting them as a controlled performance comparison.
+- The focused `ctest --preset windows-release -R bench_blank_output` passed for
+  paced and unlimited dummy-driver runs, checking CPU p99 is unavailable and
+  the Windows CSV has no CPU column. Linux behavior awaits CI.
+
 ## Exploratory cycle probe
 
 - On the same Windows `dev-01`, ran a Python `ctypes` probe against
