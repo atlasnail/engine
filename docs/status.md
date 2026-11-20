@@ -28,11 +28,19 @@ Last updated: 2026-11-20
   limiter disabled. On restore it resets the timestep and excludes paused time
   rather than running catch-up steps. Renderers must handle their own target
   size when drawing resumes; no GL render target exists yet.
-- Windows MSVC Debug and Release builds and CTest pass. A synthetic SDL zero-size
-  event followed by a restore checks that no render or update occurs during the
-  pause and no fixed-step catch-up occurs on restore. This is not a real desktop
-  minimize test; the 10-second idle-CPU check and Linux X11/Wayland verification
-  remain open. Format and clang-tidy checks pass locally.
+- The previous test measured after joining the restore thread, so it could pass
+  even when callbacks occurred before restoration. It now checks callback timing
+  against the published restore event and measures the run before the join.
+- Paused input previously filled the 128-transition action queue without fixed
+  steps to consume it, risking overflow and stale input on resume. During pause
+  and the restore pump, transient edges and frame deltas are discarded; actions
+  reconcile to the latest held state, delivering at most one reconciliation edge
+  at the next fixed step. Tests cover overflow-sized bursts, repeated paused
+  pumps, overlapping bindings, and queued pre-pause taps.
+- Windows MSVC Debug and Release builds and CTest pass for the fix, as do local
+  formatting and clang-tidy. The synthetic event tests do not replace a real
+  desktop minimize test; 10-second idle-CPU and Linux X11/Wayland verification
+  remain open. The fix has not yet been verified on Linux.
 - On `dev-01`, Windows 11 26200, MSVC 19.52 Release, hidden window, overlay off,
   `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1 --csv build/windows-release/minimize-before.csv`
   and the same command with `minimize-after.csv` reported paced frame-interval
@@ -40,7 +48,10 @@ Last updated: 2026-11-20
   295 samples each, no dropped steps, and 4.4 / 4.3 MB exit private bytes.
   These single short wall-clock runs do not measure minimized CPU or establish a
   performance improvement, F1, or a Tier A gate; raw CSVs remain in the local
-  build directory.
+  build directory. After the input fix, the same command with
+  `--csv build/windows-release/pause-input-after.csv` reported p99 17.187 ms,
+  295 samples, zero dropped steps and 4.6 MB exit private bytes; this is also
+  a single non-gated wall-clock run, not a minimized CPU measurement.
 
 ## Previous session: SDL lifecycle and the CRT leak gate
 
@@ -96,6 +107,9 @@ Last updated: 2026-11-20
 
 ## Verification
 
+- **CI on `8dd8db0` is green** (run `44759373083`): Linux GCC and Windows
+  MSVC jobs both completed successfully. Linux is headless and this run predates
+  the pause/input fixes described above.
 - **CI on `46384e1` is green** (run `44599648554`), as is the docs-only
   follow-up `3418537` (run `44600361030`). Windows (MSVC): format,
   Debug build/tests, Release build/tests. Linux (GCC 13, `ubuntu-24.04`):
@@ -143,8 +157,10 @@ Last updated: 2026-11-20
    roadmap exception is recorded. Minimized-window pause is implemented but
    real desktop behavior and the 10-second idle-CPU gate are not verified.
 5. Fixed-step input keeps at most 128 pending changes per action and 256 raw
-   button changes per pump, then fails explicitly. Dropped fixed steps mean
-   those simulation steps do not consume input; the queue is not a replay log.
+   button changes per pump, then fails explicitly during normal operation.
+   Paused pumps instead discard transient edges and reconcile held state.
+   Dropped fixed steps mean those simulation steps do not consume input; the
+   queue is not a replay log.
    Mouse movement and wheel remain frame-scoped. SDL and the selected gamepad
    are process-global, but their lifetime is now explicit: `eng::SdlSession`
    initialises on the first acquire and calls `SDL_Quit` on the last release.

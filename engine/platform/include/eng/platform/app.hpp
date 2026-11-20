@@ -76,7 +76,8 @@ public:
     // without presenting; the display callback draws the text and presents.
     // Without a callback and with the flag set, a software renderer owns the window.
     // Minimized or zero-pixel windows pause updates and rendering while events
-    // continue to be pumped; elapsed paused time is discarded on restore.
+    // continue to be pumped; elapsed paused time and transient input edges are
+    // discarded. On restore, actions reconcile to the latest held button state.
     int run(const UpdateFn& fixed_update, const RenderFn& render,
             const FrameObserver& observer = {}, const StatsDisplay& display = {});
 

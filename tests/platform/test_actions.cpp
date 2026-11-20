@@ -82,6 +82,59 @@ TEST_CASE(actions_capacity_and_names) {
         actions.bind(std::string("a\0b", 3), eng::ActionBinding::key(eng::Key::key_a)).is_error());
 }
 
+TEST_CASE(actions_pause_synchronizes_without_stale_edges_or_overflow) {
+    eng::ActionMap actions;
+    eng::InputState input;
+    REQUIRE(actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_ok());
+    REQUIRE(actions.bind("jump", eng::ActionBinding::mouse(eng::MouseButton::left)).is_ok());
+
+    // More than one action queue's worth of transitions per pump and many
+    // pumps: the last held state, not the event buffer, determines recovery.
+    for (int frame = 0; frame < 140; ++frame) {
+        InputAccess::begin_frame(input);
+        for (int i = 0; i < 300; ++i) {
+            InputAccess::set_key(input, eng::Key::space, (i % 2) == 0);
+        }
+        actions.synchronize(input);
+    }
+    actions.begin_step();
+    CHECK(!actions.down("jump"));
+    CHECK(!actions.pressed("jump"));
+    CHECK(!actions.released("jump"));
+
+    InputAccess::begin_frame(input);
+    InputAccess::set_key(input, eng::Key::space, true);
+    InputAccess::mouse_button(input, eng::MouseButton::left, true);
+    actions.synchronize(input);
+    actions.begin_step();
+    CHECK(actions.down("jump"));
+    CHECK(actions.pressed("jump"));
+    InputAccess::begin_frame(input);
+    InputAccess::set_key(input, eng::Key::space, false);
+    actions.synchronize(input);
+    actions.begin_step();
+    CHECK(actions.down("jump"));
+    CHECK(!actions.released("jump"));
+    InputAccess::begin_frame(input);
+    InputAccess::mouse_button(input, eng::MouseButton::left, false);
+    actions.synchronize(input);
+    actions.begin_step();
+    CHECK(!actions.down("jump"));
+    CHECK(actions.released("jump"));
+    actions.begin_step();
+    CHECK(!actions.released("jump"));
+
+    // A pre-pause queued tap should not be replayed after synchronization.
+    InputAccess::begin_frame(input);
+    InputAccess::set_key(input, eng::Key::space, true);
+    InputAccess::set_key(input, eng::Key::space, false);
+    REQUIRE(actions.update(input).is_ok());
+    actions.synchronize(input);
+    actions.begin_step();
+    CHECK(!actions.pressed("jump"));
+    CHECK(!actions.released("jump"));
+}
+
 TEST_CASE(actions_report_both_buffer_overflows) {
     eng::ActionMap actions;
     eng::InputState input;

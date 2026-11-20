@@ -297,6 +297,39 @@ Status ActionMap::update(const InputState& input) noexcept {
     return Status::ok();
 }
 
+void ActionMap::synchronize(const InputState& input) noexcept {
+    for (usize i = 0; i < action_count_; ++i) {
+        Action& action = actions_[i];
+        bool held = false;
+        for (usize j = 0; j < action.binding_count; ++j) {
+            const ActionBinding binding = action.bindings[j];
+            bool down = false;
+            switch (binding.device) {
+            case ActionBinding::Device::key:
+                down = input.key_down(static_cast<Key>(binding.code));
+                break;
+            case ActionBinding::Device::mouse:
+                down = input.mouse_down(static_cast<MouseButton>(binding.code));
+                break;
+            case ActionBinding::Device::gamepad:
+                down = input.gamepad_button_down(static_cast<GamepadButton>(binding.code));
+                break;
+            }
+            action.binding_down[j] = down;
+            held |= down;
+        }
+        action.head = 0;
+        action.count = 0;
+        action.observed_down = held;
+        action.pressed = false;
+        action.released = false;
+        if (held != action.down) {
+            action.pending[0] = held;
+            action.count = 1;
+        }
+    }
+}
+
 void ActionMap::begin_step() noexcept {
     for (usize i = 0; i < action_count_; ++i) {
         Action& action = actions_[i];

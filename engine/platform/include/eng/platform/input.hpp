@@ -222,6 +222,10 @@ public:
     [[nodiscard]] Status bind(std::string_view name, ActionBinding binding) noexcept;
     // Collect a pump exactly once; failure means events exceeded capacity.
     [[nodiscard]] Status update(const InputState& input) noexcept;
+    // Discard queued transitions and reconcile each action to current held
+    // inputs. The next step delivers at most one edge if that state changed.
+    // Used during a paused loop, where transient input must not accumulate.
+    void synchronize(const InputState& input) noexcept;
     void begin_step() noexcept;
     [[nodiscard]] bool down(std::string_view name) const noexcept;
     [[nodiscard]] bool pressed(std::string_view name) const noexcept;

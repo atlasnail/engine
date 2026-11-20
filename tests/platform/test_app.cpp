@@ -4,6 +4,7 @@
 #include <chrono>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <utility>
 
@@ -73,6 +74,7 @@ TEST_CASE(app_pauses_zero_size_until_restored) {
     auto result = eng::App::create(config);
     REQUIRE(result.is_ok());
     auto app = std::move(result.value());
+    REQUIRE(app->actions().bind("jump", eng::ActionBinding::key(eng::Key::space)).is_ok());
     auto* handle = static_cast<SDL_Window*>(app->window().native_handle());
     const SDL_WindowID id = SDL_GetWindowID(handle);
 
@@ -83,15 +85,33 @@ TEST_CASE(app_pauses_zero_size_until_restored) {
     event.window.data2 = 0;
     REQUIRE(SDL_PushEvent(&event));
 
+    std::mutex restore_mutex;
+    bool restore_published = false;
+    int callbacks_before_restore = 0;
+    std::atomic<bool> input_pushed{true};
     std::atomic<bool> restore_pushed{false};
-    std::thread restore([id, &restore_pushed] {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::thread restore([id, &restore_mutex, &restore_published, &restore_pushed, &input_pushed] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        for (int i = 0; i < 301; ++i) {
+            SDL_Event key{};
+            key.type = (i % 2 == 0) ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+            key.key.windowID = id;
+            key.key.scancode = SDL_SCANCODE_SPACE;
+            if (!SDL_PushEvent(&key)) {
+                input_pushed.store(false);
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         SDL_Event restored{};
         restored.type = SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED;
         restored.window.windowID = id;
         restored.window.data1 = 160;
         restored.window.data2 = 120;
-        restore_pushed.store(SDL_PushEvent(&restored));
+        {
+            std::lock_guard<std::mutex> lock(restore_mutex);
+            restore_pushed.store(SDL_PushEvent(&restored));
+            restore_published = restore_pushed.load();
+        }
         if (!restore_pushed.load()) {
             SDL_Event quit{};
             quit.type = SDL_EVENT_QUIT;
@@ -103,19 +123,43 @@ TEST_CASE(app_pauses_zero_size_until_restored) {
     int renders = 0;
     double frame_seconds = -1.0;
     const auto started = std::chrono::steady_clock::now();
-    const int code = app->run([&updates](double) { ++updates; }, [&renders](double) { ++renders; },
-                              [&app, &frame_seconds](const eng::FrameInfo& info) {
-                                  frame_seconds = info.frame_seconds;
-                                  app->quit();
-                              });
+    const auto check_callback = [&restore_mutex, &restore_published, &callbacks_before_restore] {
+        std::lock_guard<std::mutex> lock(restore_mutex);
+        if (!restore_published) {
+            ++callbacks_before_restore;
+        }
+    };
+    const int code = app->run(
+        [&updates, &check_callback](double) {
+            ++updates;
+            check_callback();
+        },
+        [&renders, &check_callback](double) {
+            ++renders;
+            check_callback();
+        },
+        [&app, &frame_seconds, &check_callback](const eng::FrameInfo& info) {
+            check_callback();
+            frame_seconds = info.frame_seconds;
+            app->quit();
+        });
+    const auto run_finished = std::chrono::steady_clock::now();
     restore.join();
     CHECK(restore_pushed.load());
-    CHECK(std::chrono::steady_clock::now() - started >= std::chrono::milliseconds(150));
+    CHECK(input_pushed.load());
+    CHECK(run_finished - started >= std::chrono::milliseconds(150));
+    CHECK(callbacks_before_restore == 0);
     CHECK(code == 0);
     CHECK(renders == 1);
     CHECK(updates == 0);
     CHECK(frame_seconds < 0.01);
     CHECK(app->dropped_steps() == 0);
+    app->actions().begin_step();
+    CHECK(app->actions().down("jump"));
+    CHECK(app->actions().pressed("jump"));
+    app->actions().begin_step();
+    CHECK(app->actions().down("jump"));
+    CHECK(!app->actions().pressed("jump"));
 }
 
 TEST_CASE(app_frame_stats_overlay_runs) {

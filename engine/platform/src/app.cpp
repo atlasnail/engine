@@ -13,6 +13,7 @@
 #include "eng/core/log.hpp"
 #include "eng/core/time.hpp"
 #include "eng/platform/sdl.hpp"
+#include "input_access.hpp"
 
 namespace eng {
 
@@ -105,16 +106,25 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
 
     while (!window_->should_close() && !quit_requested_) {
         window_->pump_events(input_);
-        const Status input_status = actions_.update(input_);
-        if (input_status.is_error()) {
-            ENG_LOG_ERROR("app", "input delivery failed: %s", input_status.error().message);
-            return 1;
+        const bool minimized = window_->is_minimized();
+        if (minimized || paused_for_minimize) {
+            // A pause has no fixed updates to drain the bounded action queues.
+            // Retain final held state, but discard transient edges and deltas,
+            // including input received in the restore pump.
+            actions_.synchronize(input_);
+            platform::detail::InputAccess::begin_frame(input_);
+        } else {
+            const Status input_status = actions_.update(input_);
+            if (input_status.is_error()) {
+                ENG_LOG_ERROR("app", "input delivery failed: %s", input_status.error().message);
+                return 1;
+            }
         }
 
         if (window_->should_close() || quit_requested_) {
             break;
         }
-        if (window_->is_minimized()) {
+        if (minimized) {
             paused_for_minimize = true;
             // Continue pumping events while paused without busy-spinning, even
             // when the normal frame limiter is disabled.
