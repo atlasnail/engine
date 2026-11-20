@@ -40,7 +40,8 @@ Last updated: 2026-11-20
 - Windows MSVC Debug and Release builds and CTest pass for the fix, as do local
   formatting and clang-tidy. The synthetic event tests do not replace a real
   desktop minimize test; 10-second idle-CPU and Linux X11/Wayland verification
-  remain open. The fix has not yet been verified on Linux.
+  remain open. Linux CI also passed the fix using the dummy video driver; see
+  the verification record below.
 - On `dev-01`, Windows 11 26200, MSVC 19.52 Release, hidden window, overlay off,
   `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1 --csv build/windows-release/minimize-before.csv`
   and the same command with `minimize-after.csv` reported paced frame-interval
@@ -107,6 +108,10 @@ Last updated: 2026-11-20
 
 ## Verification
 
+- **CI on `f067dbb` passed** (run `44760210247`): Linux GCC Debug,
+  ASan+UBSan and Release builds/tests, formatting and blocking clang-tidy all
+  passed; Windows MSVC Debug and Release builds/tests and formatting passed.
+  Linux used the dummy video driver, not a real desktop.
 - **CI on `8dd8db0` is green** (run `44759373083`): Linux GCC and Windows
   MSVC jobs both completed successfully. Linux is headless and this run predates
   the pause/input fixes described above.
