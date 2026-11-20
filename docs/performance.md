@@ -71,7 +71,7 @@ Targets are ceilings for the engine on Tier A. A game with heavier content can e
 
 ## 4. Benchmark suite
 
-Each benchmark is planned as a separate driver under `benchmarks/`. Only `bench_blank` exists so far. It reports main-thread CPU work separately from elapsed frame-start intervals. F1 remains unverified: Windows CPU accounting is too coarse for individual short frames in the observed run, Linux has not yet run the new measurement, and the Tier A protocol has not been run.
+Each benchmark is planned as a separate driver under `benchmarks/`. Only `bench_blank` exists so far. It reports main-thread CPU work separately from elapsed frame-start intervals. F1 remains unverified: Windows CPU accounting is too coarse for individual short frames in the observed run, Linux has passed headless CI but has not run a performance gate, and the Tier A protocol has not been run.
 
 `bench_blank` accounts for each measured frame using fixed 1 µs histogram buckets
 up to 100 ms and an overflow bucket, without retaining individual samples.
@@ -109,6 +109,39 @@ Rules for adding a benchmark: deterministic content, fixed seed, no network, no 
 | Audio callback | Monotonic clock around the mix; underrun counter from the device layer. |
 | Input latency | Frame counter test: synthetic input at frame N, marker visible at frame N+k; measured over 1000 runs. |
 | Load times | Wall clock around the load API; asset count and bytes recorded. |
+
+### Windows CPU-time investigation (2026-11-20)
+
+`GetThreadTimes` reports user and kernel execution time in 100 ns *units*,
+but Microsoft does not guarantee 100 ns accounting resolution. On `dev-01`,
+the recorded 15.625 ms quantization makes individual short-frame percentiles
+unsuitable for F1. A 100-iteration exploratory Python probe observed distinct
+`QueryThreadCycleTime` values for empty, sleeping and 300 µs busy sections; the
+full conditions and raw summary are in the [developer record](../benchmarks/results/2026-11-20-bench-blank-cpu-win-x64-dev01.md).
+This is not a CPU-time validation: Microsoft explicitly warns against
+converting those CPU-dependent cycle counts to time. QPC measures elapsed time,
+including descheduling; it is not a drop-in CPU-time clock. Calibrating cycles
+against QPC alone cannot prove correct behavior across processors, power states,
+thread migration or virtual machines.
+
+A candidate for a finer measurement is offline ETW reconstruction: capture
+timestamped frame start/end markers tied to the process and main thread, and
+intersect each frame interval with that thread's scheduling intervals derived
+from `CSwitch` events. Pair transitions correctly across processors, retain
+warm-up boundaries, reject missing or ambiguous markers and incomplete traces,
+and check all ETW event/buffer loss counters. Validate with repeated short busy
+work, sleep, preemption, migration and a longer comparison to `GetThreadTimes`,
+and measure tracing overhead before using it for F1. This is a proposal, not an
+implemented or validated benchmark. System tracing requires appropriate
+privileges/session access; this session did not grant privileges or collect an
+ETW trace. Keep the Windows measurement card and F1 gate open.
+
+Sources: [GetThreadTimes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes),
+[QueryThreadCycleTime](https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-querythreadcycletime),
+[QPC and TSC guidance](https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps),
+[ETW CSwitch](https://learn.microsoft.com/en-us/windows/win32/etw/cswitch),
+[SystemTraceProvider access](https://learn.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-a-systemtraceprovider-session),
+and [ETW loss counters](https://learn.microsoft.com/en-us/windows/win32/api/evntrace/ns-evntrace-event_trace_properties).
 
 Method details, exact commands and flags for each benchmark go in the benchmark's README once implemented; `AGENTS.md` §5 must match.
 

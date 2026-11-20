@@ -12,4 +12,53 @@
 - After unlimited: 5,744,481 measured frames across the whole run, interval p50/p99 0.000 ms (1 µs buckets), min 0.0004 ms, max 0.2478 ms; CPU p50/p99 0.000 ms, min 0 ms, max 15.625 ms, average 0.000356 ms; 6.2 MB exit private bytes.
 - All runs reported zero dropped fixed steps. The paced commands differ in CSV logging. These single short runs are not a regression assessment and cannot be directly compared as controlled baselines.
 - CPU measures main-thread kernel plus user time from `GetThreadTimes`, around event processing through render and stats, excluding pacing, observer and CSV writes. Windows accounting was visibly quantized: a zero percentile does not establish F1. Histograms use 1 µs buckets and include every measured frame; their lower edges are reported. Earlier output used individual frame-start intervals and retained only the first 200,000 frames.
-- F1 verdict: **not verified**. A validated finer Windows clock, Linux verification, Tier A hardware and the full 60-second protocol remain outstanding.
+- F1 verdict: **not verified**. At the time of the original run, Linux verification was also outstanding; CI for `92ccfc0` has since passed headless. A validated finer Windows method, Tier A hardware and the full 60-second protocol remain outstanding.
+
+## Exploratory cycle probe
+
+- On the same Windows `dev-01`, ran a Python `ctypes` probe against
+  `QueryThreadCycleTime(GetCurrentThread())`, 100 iterations per condition.
+  Each sample bracketed either no work, `time.sleep(0.01)`, or a Python busy
+  loop until `time.perf_counter_ns()` advanced 300,000 ns. Calls, Python work
+  and scheduler noise contribute to each sample; these are raw cycle-counter
+  deltas, not engine frame measurements and not time in seconds.
+- Empty min/median/max: 2,150 / 2,580 / 9,460; sleep: 70,520 / 133,515 /
+  209,840; busy: 1,274,520 / 1,293,010 / 1,334,720. No zero samples.
+- This shows distinguishable cycles in this probe only. Microsoft explicitly
+  warns against converting this counter to elapsed time; no conversion or F1
+  conclusion is valid here. `wpr -status` reported not recording. The current
+  medium-integrity token was in Performance Log Users, but did not list the
+  user profile privilege; no ETW session was started or tested. See
+  `docs/performance.md` for the ETW candidate and required validation.
+
+Reproduce from the project root in Git Bash (`python` is the local Windows Python):
+
+```bash
+python - <<'PY'
+import ctypes, statistics, time
+from ctypes import wintypes
+k = ctypes.WinDLL('kernel32', use_last_error=True)
+k.GetCurrentThread.restype = wintypes.HANDLE
+k.QueryThreadCycleTime.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+k.QueryThreadCycleTime.restype = wintypes.BOOL
+thread = k.GetCurrentThread()
+def read():
+    value = ctypes.c_ulonglong()
+    if not k.QueryThreadCycleTime(thread, ctypes.byref(value)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return value.value
+def trial(kind):
+    begin = read()
+    if kind == 'busy':
+        deadline = time.perf_counter_ns() + 300_000
+        while time.perf_counter_ns() < deadline:
+            pass
+    elif kind == 'sleep':
+        time.sleep(.01)
+    return read() - begin
+for kind in ('empty', 'sleep', 'busy'):
+    values = [trial(kind) for _ in range(100)]
+    print(kind, 'n=100', 'cycles min/median/max=', min(values),
+          statistics.median(values), max(values), 'zeros=', values.count(0))
+PY
+```

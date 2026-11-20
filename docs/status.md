@@ -20,7 +20,29 @@ Last updated: 2026-11-20
   run and passes; it uses SDL's dummy video driver, so no real display, GPU or
   gamepad has been exercised on Linux.
 
-## Latest session: benchmark CPU instrumentation (M1 gate still open)
+## Latest session: CI and Windows CPU-time investigation
+
+- CI run [44764299141](https://github.com/atlasnail/engine/actions/runs/44764299141)
+  for `92ccfc0` completed successfully. Linux GCC Debug, ASan+UBSan and Release
+  builds/tests, formatting and blocking clang-tidy passed; Windows MSVC Debug
+  and Release builds/tests and formatting passed. Linux used SDL's dummy video
+  driver; this is not a Linux desktop or performance-gate run. No CI fix was
+  needed.
+- Investigated a finer Windows per-frame CPU timer. The reproducible 100-sample
+  `QueryThreadCycleTime` probe on `dev-01` distinguished empty, 10 ms sleeping
+  and 300 µs busy sections, but the values are cycles, not verified seconds.
+  Microsoft explicitly warns against converting them to time. QPC alone is
+  elapsed time and includes descheduling. See `docs/performance.md` and the
+  developer benchmark record for sources, numbers and a candidate ETW
+  scheduling-trace validation protocol.
+- No ETW trace was captured: the current medium-integrity token was a member of
+  Performance Log Users but did not list the user profile privilege. System
+  tracing requires appropriate privilege/session access. No system permissions
+  were changed, and ETW has not been proven to work on this machine. A
+  frame-correlated, loss-checked trace and sleep/busy/preemption validation are
+  still needed before adopting it. F1 and M1 remain open.
+
+## Previous session: benchmark CPU instrumentation (M1 gate still open)
 
 - `bench_blank` opts into main-thread CPU accounting around the event pump,
   fixed updates, render and optional stats display. The limiter, observer and
@@ -42,11 +64,10 @@ Last updated: 2026-11-20
   CSV logging differs between the paced runs. These single short developer runs
   are not a regression assessment, a Tier A run, or F1 evidence: Windows
   CPU accounting was visibly quantized and per-frame p99 is misleading.
-- Windows Debug and Release builds/CTest pass, including a sleep-versus-CPU
-  test. Formatting passed; clang-tidy passed with locally available 22.1.3,
-  not CI's pinned 22.1.8. Linux build/tests and its CPU clock remain unverified
-  for these changes. A finer validated Windows measurement and Tier A runs
-  remain necessary; do not close the measurement or performance gate.
+- Windows Debug and Release builds/CTest passed, including a sleep-versus-CPU
+  test. Formatting passed; local clang-tidy passed with 22.1.3. The later
+  Linux headless CI result is recorded above. A finer validated Windows
+  measurement and Tier A runs remain necessary; do not close the gate.
 
 ## Latest session: minimized-window work (M1 gate still open)
 
@@ -202,8 +223,9 @@ Last updated: 2026-11-20
 7. Atomic replacement is not power-loss durable: file and directory sync are
    not implemented. A single writer per path is assumed.
 8. Tier A hardware and the 60-second gate are unavailable. Windows' current
-   per-thread CPU accounting is too coarse for short frames; Linux's new clock
-   is not yet verified. Neither platform can claim F1 on current evidence.
+   per-thread CPU accounting is too coarse for short frames; Linux's clock is
+   covered by headless CI but has not had a performance-gate run. Neither
+   platform can claim F1 on current evidence.
 9. `Result<T>` error messages are non-owning. Existing code may still allow
    allocation/standard-library exceptions across boundaries.
 
