@@ -1,8 +1,8 @@
-#include "eng/platform/input.hpp"
+#include "peri/platform/input.hpp"
 
 #include "input_access.hpp"
 
-namespace eng {
+namespace peri {
 namespace {
 
 bool valid_key(Key key) noexcept {
@@ -185,9 +185,9 @@ void InputAccess::set_gamepad_axis(InputState& input, GamepadAxis axis, float va
 }
 
 }  // namespace platform::detail
-}  // namespace eng
+}  // namespace peri
 
-namespace eng {
+namespace peri {
 namespace {
 
 // Compared via an explicit mapping: the two enums are independent types and
@@ -359,4 +359,4 @@ bool ActionMap::released(std::string_view name) const noexcept {
     const Action* action = find(name);
     return action != nullptr && action->released;
 }
-}  // namespace eng
+}  // namespace peri

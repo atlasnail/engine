@@ -1,9 +1,9 @@
 #include "framework.hpp"
 
-#include "eng/core/fixed_step.hpp"
+#include "peri/core/fixed_step.hpp"
 
 TEST_CASE(fixed_step_basic_accumulation) {
-    eng::FixedTimestep timer(1.0 / 60.0);
+    peri::FixedTimestep timer(1.0 / 60.0);
 
     CHECK(timer.advance(0.0) == 0);
     CHECK(timer.advance(-1.0) == 0);
@@ -20,14 +20,14 @@ TEST_CASE(fixed_step_basic_accumulation) {
 }
 
 TEST_CASE(fixed_step_multiple_steps_in_one_frame) {
-    eng::FixedTimestep timer(0.01);
+    peri::FixedTimestep timer(0.01);
     CHECK(timer.advance(0.025) == 2);
     CHECK(timer.alpha() > 0.49);
     CHECK(timer.alpha() < 0.51);
 }
 
 TEST_CASE(fixed_step_drops_steps_instead_of_spiralling) {
-    eng::FixedTimestep timer(1.0 / 60.0, 4);
+    peri::FixedTimestep timer(1.0 / 60.0, 4);
 
     // 100 ms is six steps; only four may run and the rest are dropped.
     const int steps = timer.advance(0.1);
@@ -40,14 +40,14 @@ TEST_CASE(fixed_step_drops_steps_instead_of_spiralling) {
 }
 
 TEST_CASE(fixed_step_clamps_long_frames) {
-    eng::FixedTimestep timer(1.0 / 60.0, 100);
+    peri::FixedTimestep timer(1.0 / 60.0, 100);
 
     // 10 seconds is clamped to 250 ms = 15 steps, not 600.
     CHECK(timer.advance(10.0) == 15);
 }
 
 TEST_CASE(fixed_step_reset_clears_progress) {
-    eng::FixedTimestep timer(0.01);
+    peri::FixedTimestep timer(0.01);
     CHECK(timer.advance(0.015) == 1);
     timer.reset();
     CHECK(timer.alpha() == 0.0);

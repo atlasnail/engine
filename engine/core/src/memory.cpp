@@ -1,17 +1,17 @@
-#include "eng/core/memory.hpp"
+#include "peri/core/memory.hpp"
 
 #include <atomic>
 #include <cstdlib>
 #include <memory>
 #include <new>
 
-#include "eng/core/assert.hpp"
+#include "peri/core/assert.hpp"
 
 #if defined(_MSC_VER)
 #include <malloc.h>
 #endif
 
-namespace eng::mem {
+namespace peri::mem {
 namespace {
 
 constexpr u32 k_magic = 0x454E4741u;  // 'ENGA'
@@ -43,7 +43,7 @@ std::atomic<u64> g_total_frees{0};
 
 usize tag_index(Tag tag) noexcept {
     const usize index = static_cast<usize>(tag);
-    ENG_ASSERT(index < k_tag_count);
+    PERI_ASSERT(index < k_tag_count);
     return index < k_tag_count ? index : 0;
 }
 
@@ -85,7 +85,7 @@ void* allocate(usize bytes, usize alignment, Tag tag) noexcept {
         return nullptr;
     }
 
-    ENG_ASSERT(is_power_of_two(alignment));
+    PERI_ASSERT(is_power_of_two(alignment));
     if (!is_power_of_two(alignment)) {
         return nullptr;
     }
@@ -115,7 +115,7 @@ void* allocate(usize bytes, usize alignment, Tag tag) noexcept {
         void* search = static_cast<char*>(raw) + sizeof(Header);
         usize space = total - sizeof(Header);
         void* aligned = std::align(alignment, bytes, search, space);
-        ENG_ASSERT(aligned != nullptr);
+        PERI_ASSERT(aligned != nullptr);
         if (aligned == nullptr) {
             system_aligned_free(raw);
             return nullptr;
@@ -149,7 +149,7 @@ void deallocate(void* pointer) noexcept {
     }
 
     auto* header = static_cast<Header*>(pointer) - 1;
-    ENG_ASSERT(header->magic == k_magic);
+    PERI_ASSERT(header->magic == k_magic);
     if (header->magic != k_magic) {
         // Corrupt or foreign pointer. Do not attempt to free it; the bug is
         // reported by the assertion above in debug builds.
@@ -228,4 +228,4 @@ const char* tag_name(Tag tag) noexcept {
     return "unknown";
 }
 
-}  // namespace eng::mem
+}  // namespace peri::mem

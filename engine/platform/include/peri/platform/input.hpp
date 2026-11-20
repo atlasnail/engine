@@ -15,15 +15,15 @@
 #include <array>
 #include <string_view>
 
-#include "eng/core/math.hpp"
-#include "eng/core/result.hpp"
-#include "eng/core/types.hpp"
+#include "peri/core/math.hpp"
+#include "peri/core/result.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng::platform::detail {
+namespace peri::platform::detail {
 struct InputAccess;
 }
 
-namespace eng {
+namespace peri {
 
 enum class Key : u16 {
     unknown = 0,
@@ -251,4 +251,4 @@ private:
     usize action_count_ = 0;
 };
 
-}  // namespace eng
+}  // namespace peri

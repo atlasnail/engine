@@ -3,18 +3,18 @@
 #include <chrono>
 #include <thread>
 
-#include "eng/core/time.hpp"
+#include "peri/core/time.hpp"
 
 TEST_CASE(time_now_seconds_is_monotonic) {
-    const double first = eng::time::now_seconds();
-    const double second = eng::time::now_seconds();
+    const double first = peri::time::now_seconds();
+    const double second = peri::time::now_seconds();
 
     CHECK(first >= 0.0);
     CHECK(second >= first);
 }
 
 TEST_CASE(time_stopwatch_measures_elapsed) {
-    eng::time::Stopwatch watch;
+    peri::time::Stopwatch watch;
     CHECK(watch.elapsed_seconds() >= 0.0);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));

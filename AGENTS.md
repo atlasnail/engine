@@ -4,9 +4,9 @@ This file is for AI agents and new human contributors. It is deliberately short,
 
 ## 1. What this project is
 
-A from-scratch, native, **2D-only** game engine for **Windows and Linux**, written in **C++20**, with Lua scripting and a C ABI for other language bindings. Priorities, in order: correctness and clarity, low memory use, high and predictable frame rate, cross-platform parity, long-term maintainability.
+**Peridot Engine** (`peri`) is a from-scratch, native, **2D-only** game engine for **Windows and Linux**, written in **C++20**, with Lua scripting and a C ABI for other language bindings. Priorities, in order: correctness and clarity, low memory use, high and predictable frame rate, cross-platform parity, long-term maintainability.
 
-**Current phase: foundations and platform work.** M0 and M1 are not complete until their exit criteria are verified on both platforms. Implemented facts belong in `docs/status.md`; everything else is a plan.
+**Current phase: foundations and platform work.** M0 was completed on the evidence recorded in `docs/status.md`; M1 remains open until its exit criteria are verified on both platforms. Implemented facts belong in `docs/status.md`; everything else is a plan.
 
 ## 2. Read order
 
@@ -41,6 +41,7 @@ Target structure; create directories only when a milestone needs them.
 /AGENTS.md              this file
 /README.md              scope, non-goals, document map
 /docs/                  roadmap, architecture, performance, conventions, status, ADRs
+/brand/                 logo, typography, palette and usage guidelines
 /engine/
   /public/              stable C++ headers (installed)
   /c_api/               stable C ABI header (installed)
@@ -62,9 +63,10 @@ Target structure; create directories only when a milestone needs them.
 
 ## 5. Build and test commands
 
-These are verified on Windows (MSVC 19.52; M0 also built with Clang 22.1.3) and
-in CI on Linux (GCC 13, Debug/Release/ASan). Linux has not run on this local
-machine; see `docs/status.md` for what is actually verified.
+Windows Debug is verified with MSVC 19.52 after the Peridot rename. Earlier
+versions also ran in Linux CI (GCC 13, Debug/Release/ASan) and with Clang
+22.1.3 on Windows, but that evidence predates the rename. Linux has not run on
+this local machine; see `docs/status.md` for what is actually verified.
 
 **Windows, Developer PowerShell for VS 2026:**
 
@@ -117,10 +119,10 @@ The first configure downloads SDL 3.4.20 (pinned in `third_party/`). After that,
 `build/<preset>/_deps/` is reused. A configure without network fails; use a
 populated dependency cache or a local archive override.
 
-Artifacts: `build/<preset>/bin/eng_tests(.exe)`,
-`build/<preset>/bin/eng_platform_tests(.exe)`, `bench_blank(.exe)`; libraries in
+Artifacts: `build/<preset>/bin/peri_tests(.exe)`,
+`build/<preset>/bin/peri_platform_tests(.exe)`, `bench_blank(.exe)`; libraries in
 `build/<preset>/lib/`. Test executables accept a substring filter
-(`eng_tests.exe memory`).
+(`peri_tests.exe memory`).
 
 Keep this section, `README.md` and `docs/status.md` consistent when commands or
 presets change.

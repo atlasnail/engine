@@ -142,7 +142,7 @@ Illustrative only; final names and shapes are decided when each milestone starts
 
 ```cpp
 // engine/public/engine.h  (sketch, not implemented)
-namespace eng {
+namespace peri {
 
 struct Config { int width, height; const char* title; bool vsync; };
 
@@ -162,7 +162,7 @@ public:
 
 int run(Engine&, Game&);
 
-} // namespace eng
+} // namespace peri
 ```
 
 Structural intent: an explicit context, a game interface, and free functions for subsystem access (`renderer(e)`, `audio(e)`, `assets(e)`), rather than deep inheritance or singletons.
@@ -189,7 +189,7 @@ Tracked here until resolved by ADR; each becomes an ADR at M0.
 What is actually true today, as opposed to intended:
 
 - `platform` wraps SDL 3.4.20 and exposes `Window`, `InputState`, `App`,
-  `SdlSession` and `eng::fs`. SDL types stay inside the module; the only leak is
+  `SdlSession` and `peri::fs`. SDL types stay inside the module; the only leak is
   the opaque `void* native_handle()` intended for the renderer backend.
 - SDL's global state has one owner: `SdlSession`. The first acquire initialises
   video and the gamepad subsystem, the last release closes the selected gamepad
@@ -197,7 +197,7 @@ What is actually true today, as opposed to intended:
   session. `App` holds a session, so nothing above the platform layer has to
   think about SDL's lifetime beyond not outliving its own App.
 - The OpenGL loader is pinned as glad 2.0.8, GL 3.3 core with no extensions
-  (ADR-0010). It builds as `eng::gl_loader`; no engine target links it yet.
+  (ADR-0010). It builds as `peri::gl_loader`; no engine target links it yet.
 - The OpenGL context is **not** created yet. It arrives with the M2 renderer,
   because window tests must run headless.
 - `app` runs fixed updates with an interpolation alpha, an optional FPS limiter

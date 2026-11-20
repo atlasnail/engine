@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace eng {
+namespace peri {
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -28,4 +28,4 @@ using isize = std::ptrdiff_t;
 // Placeholder for "no index". Not a size, never used for arithmetic.
 inline constexpr usize k_invalid_index = static_cast<usize>(-1);
 
-}  // namespace eng
+}  // namespace peri

@@ -1,9 +1,9 @@
 # Platform: window, input, file system and OS boundaries.
 #
 # SDL is used here and nowhere else. Any OS header belongs in this module.
-# Everything above depends on eng::platform through its own types.
+# Everything above depends on peri::platform through its own types.
 
-add_library(eng_platform STATIC
+add_library(peri_platform STATIC
     src/app.cpp
     src/fs.cpp
     src/file_log.cpp
@@ -12,17 +12,17 @@ add_library(eng_platform STATIC
     src/window.cpp
 )
 
-add_library(eng::platform ALIAS eng_platform)
+add_library(peri::platform ALIAS peri_platform)
 
-target_include_directories(eng_platform
+target_include_directories(peri_platform
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(eng_platform
-    PUBLIC eng::core
+target_link_libraries(peri_platform
+    PUBLIC peri::core
     PRIVATE SDL3::SDL3-static
 )
 
-eng_apply_warnings(eng_platform)
+peri_apply_warnings(peri_platform)

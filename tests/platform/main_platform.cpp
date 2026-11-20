@@ -1,8 +1,8 @@
 #include <cstdio>
 
-#include "eng/platform/sdl.hpp"
 #include "framework.hpp"
 #include "leak_check.hpp"
+#include "peri/platform/sdl.hpp"
 
 // Entry point for the platform test binary.
 //
@@ -10,16 +10,16 @@
 // leak check reports: otherwise SDL's own live state would be reported as a leak
 // and the check would be meaningless.
 int main(int argc, char** argv) {
-    engtest::CrtLeakCheck leak_check;
+    peritest::CrtLeakCheck leak_check;
 
     int code = 0;
     {
-        const eng::Result<eng::SdlSession> session = eng::SdlSession::acquire();
+        const peri::Result<peri::SdlSession> session = peri::SdlSession::acquire();
         if (session.is_error()) {
             std::fprintf(stderr, "could not initialise SDL: %s\n", session.error().message);
             return 1;
         }
-        code = engtest::run_all(argc, argv);
+        code = peritest::run_all(argc, argv);
     }
 
     if (leak_check.report()) {

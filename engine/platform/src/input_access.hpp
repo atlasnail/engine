@@ -3,9 +3,9 @@
 // Internal bridge between the event pump and InputState. Not installed and not
 // included outside engine/platform; game code uses the public accessors.
 
-#include "eng/platform/input.hpp"
+#include "peri/platform/input.hpp"
 
-namespace eng::platform::detail {
+namespace peri::platform::detail {
 
 struct InputAccess {
     static void begin_frame(InputState& input) noexcept;
@@ -22,4 +22,4 @@ struct InputAccess {
     static void set_gamepad_axis(InputState& input, GamepadAxis axis, float value) noexcept;
 };
 
-}  // namespace eng::platform::detail
+}  // namespace peri::platform::detail

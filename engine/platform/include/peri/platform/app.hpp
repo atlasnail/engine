@@ -12,12 +12,12 @@
 #include <functional>
 #include <memory>
 
-#include "eng/core/result.hpp"
-#include "eng/core/types.hpp"
-#include "eng/platform/input.hpp"
-#include "eng/platform/window.hpp"
+#include "peri/core/result.hpp"
+#include "peri/core/types.hpp"
+#include "peri/platform/input.hpp"
+#include "peri/platform/window.hpp"
 
-namespace eng {
+namespace peri {
 
 class SdlSession;
 
@@ -106,4 +106,4 @@ private:
     u64 dropped_steps_ = 0;
 };
 
-}  // namespace eng
+}  // namespace peri

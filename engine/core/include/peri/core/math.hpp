@@ -13,9 +13,9 @@
 
 #include <cmath>
 
-#include "eng/core/types.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng {
+namespace peri {
 
 struct Vec2 {
     float x = 0.0f;
@@ -149,4 +149,4 @@ struct Color {
     constexpr bool operator==(const Color&) const = default;
 };
 
-}  // namespace eng
+}  // namespace peri

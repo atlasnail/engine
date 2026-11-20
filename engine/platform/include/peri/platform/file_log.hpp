@@ -3,11 +3,11 @@
 #include <memory>
 #include <string_view>
 
-#include "eng/core/log.hpp"
-#include "eng/core/result.hpp"
-#include "eng/core/types.hpp"
+#include "peri/core/log.hpp"
+#include "peri/core/result.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng {
+namespace peri {
 
 // An opt-in sink for set_log_sink(). It also writes each record to stderr.
 // The file is flushed after every record, but this is not an fsync or a crash
@@ -36,4 +36,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace eng
+}  // namespace peri

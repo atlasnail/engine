@@ -1,16 +1,16 @@
-#include "eng/platform/window.hpp"
+#include "peri/platform/window.hpp"
 
 #include <algorithm>
 #include <array>
 
 #include <SDL3/SDL.h>
 
-#include "eng/core/log.hpp"
-#include "eng/platform/sdl.hpp"
 #include "input_access.hpp"
+#include "peri/core/log.hpp"
+#include "peri/platform/sdl.hpp"
 #include "sdl_internal.hpp"
 
-namespace eng {
+namespace peri {
 namespace {
 
 SDL_Gamepad* g_gamepad = nullptr;
@@ -249,12 +249,12 @@ void open_gamepad(SDL_JoystickID instance_id) noexcept {
     }
     SDL_Gamepad* gamepad = SDL_OpenGamepad(instance_id);
     if (gamepad == nullptr) {
-        ENG_LOG_WARN("platform", "could not open gamepad: %s", SDL_GetError());
+        PERI_LOG_WARN("platform", "could not open gamepad: %s", SDL_GetError());
         return;
     }
     g_gamepad = gamepad;
     g_gamepad_id = instance_id;
-    ENG_LOG_INFO("platform", "gamepad connected: %s", SDL_GetGamepadName(gamepad));
+    PERI_LOG_INFO("platform", "gamepad connected: %s", SDL_GetGamepadName(gamepad));
 }
 
 void close_gamepad(SDL_JoystickID instance_id) noexcept {
@@ -264,7 +264,7 @@ void close_gamepad(SDL_JoystickID instance_id) noexcept {
     SDL_CloseGamepad(g_gamepad);
     g_gamepad = nullptr;
     g_gamepad_id = 0;
-    ENG_LOG_INFO("platform", "gamepad disconnected");
+    PERI_LOG_INFO("platform", "gamepad disconnected");
 }
 
 void sync_gamepad(InputState& input) noexcept {
@@ -322,8 +322,8 @@ Result<std::unique_ptr<Window>> Window::create(const WindowConfig& config) {
     }
 
     if (!sdl_session_active()) {
-        ENG_LOG_ERROR("platform", "no SDL session; acquire eng::SdlSession first");
-        return Error{ErrorCode::internal_error, "no SDL session; acquire eng::SdlSession first"};
+        PERI_LOG_ERROR("platform", "no SDL session; acquire peri::SdlSession first");
+        return Error{ErrorCode::internal_error, "no SDL session; acquire peri::SdlSession first"};
     }
 
     SDL_WindowFlags flags = 0;
@@ -339,7 +339,7 @@ Result<std::unique_ptr<Window>> Window::create(const WindowConfig& config) {
 
     SDL_Window* handle = SDL_CreateWindow(config.title, config.width, config.height, flags);
     if (handle == nullptr) {
-        ENG_LOG_ERROR("platform", "SDL_CreateWindow failed: %s", SDL_GetError());
+        PERI_LOG_ERROR("platform", "SDL_CreateWindow failed: %s", SDL_GetError());
         return Error{ErrorCode::internal_error, "could not create window"};
     }
 
@@ -472,7 +472,7 @@ void Window::set_title(const char* title) {
 
 void Window::toggle_fullscreen() {
     if (!SDL_SetWindowFullscreen(impl_->handle, !is_fullscreen())) {
-        ENG_LOG_WARN("platform", "could not toggle fullscreen: %s", SDL_GetError());
+        PERI_LOG_WARN("platform", "could not toggle fullscreen: %s", SDL_GetError());
     }
 }
 
@@ -511,4 +511,4 @@ void* Window::native_handle() const noexcept {
     return impl_->handle;
 }
 
-}  // namespace eng
+}  // namespace peri

@@ -1,4 +1,4 @@
-#include "eng/platform/fs.hpp"
+#include "peri/platform/fs.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -16,9 +16,9 @@
 #include <windows.h>
 #endif
 
-#include "eng/core/log.hpp"
+#include "peri/core/log.hpp"
 
-namespace eng::fs {
+namespace peri::fs {
 namespace {
 
 #if defined(_WIN32)
@@ -55,7 +55,7 @@ bool replace_file(const std::string& from, const std::string& to) {
     const std::filesystem::path destination = to_path(to);
     if (!MoveFileExW(source.c_str(), destination.c_str(),
                      MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        ENG_LOG_ERROR("fs", "atomic replace failed for %s", to.c_str());
+        PERI_LOG_ERROR("fs", "atomic replace failed for %s", to.c_str());
         return false;
     }
     return true;
@@ -63,8 +63,8 @@ bool replace_file(const std::string& from, const std::string& to) {
     std::error_code error;
     std::filesystem::rename(to_path(from), to_path(to), error);
     if (error) {
-        ENG_LOG_ERROR("fs", "atomic replace failed for %s: %s", to.c_str(),
-                      error.message().c_str());
+        PERI_LOG_ERROR("fs", "atomic replace failed for %s: %s", to.c_str(),
+                       error.message().c_str());
         return false;
     }
     return true;
@@ -91,13 +91,13 @@ Result<std::string> read_text_file(std::string_view path) {
     // build. A sized read also avoids repeated string growth.
     std::ifstream file(fs_path, std::ios::binary | std::ios::ate);
     if (!file) {
-        ENG_LOG_ERROR("fs", "could not open %s for reading", std::string(path).c_str());
+        PERI_LOG_ERROR("fs", "could not open %s for reading", std::string(path).c_str());
         return Error{ErrorCode::io_failure, "could not open file for reading"};
     }
 
     const std::streamoff end = file.tellg();
     if (end < 0) {
-        ENG_LOG_ERROR("fs", "could not size %s", std::string(path).c_str());
+        PERI_LOG_ERROR("fs", "could not size %s", std::string(path).c_str());
         return Error{ErrorCode::io_failure, "could not determine file size"};
     }
 
@@ -106,7 +106,7 @@ Result<std::string> read_text_file(std::string_view path) {
     if (!contents.empty()) {
         file.read(contents.data(), static_cast<std::streamsize>(contents.size()));
         if (!file) {
-            ENG_LOG_ERROR("fs", "short read of %s", std::string(path).c_str());
+            PERI_LOG_ERROR("fs", "short read of %s", std::string(path).c_str());
             return Error{ErrorCode::io_failure, "error while reading file"};
         }
     }
@@ -119,14 +119,14 @@ Status write_text_file(std::string_view path, std::string_view contents) {
 
     std::ofstream file(fs_path, std::ios::binary | std::ios::trunc);
     if (!file) {
-        ENG_LOG_ERROR("fs", "could not open %s for writing", std::string(path).c_str());
+        PERI_LOG_ERROR("fs", "could not open %s for writing", std::string(path).c_str());
         return Status::failure(ErrorCode::io_failure, "could not open file for writing");
     }
 
     file.write(contents.data(), static_cast<std::streamsize>(contents.size()));
     file.flush();
     if (!file) {
-        ENG_LOG_ERROR("fs", "error while writing %s", std::string(path).c_str());
+        PERI_LOG_ERROR("fs", "error while writing %s", std::string(path).c_str());
         return Status::failure(ErrorCode::io_failure, "error while writing file");
     }
 
@@ -169,8 +169,8 @@ Status create_directories(std::string_view path) {
     error.clear();
     std::filesystem::create_directories(fs_path, error);
     if (error) {
-        ENG_LOG_ERROR("fs", "could not create directory %s: %s", std::string(path).c_str(),
-                      error.message().c_str());
+        PERI_LOG_ERROR("fs", "could not create directory %s: %s", std::string(path).c_str(),
+                       error.message().c_str());
         return Status::failure(ErrorCode::io_failure, "could not create directory");
     }
 
@@ -195,11 +195,11 @@ Result<std::string> executable_directory() {
     // SDL3 returns a pointer to internal storage; do not free it.
     const char* base = SDL_GetBasePath();
     if (base == nullptr) {
-        ENG_LOG_ERROR("fs", "SDL_GetBasePath failed: %s", SDL_GetError());
+        PERI_LOG_ERROR("fs", "SDL_GetBasePath failed: %s", SDL_GetError());
         return Error{ErrorCode::io_failure, "could not determine executable directory"};
     }
 
     return std::string(base);
 }
 
-}  // namespace eng::fs
+}  // namespace peri::fs

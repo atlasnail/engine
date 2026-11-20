@@ -11,13 +11,14 @@ If you only read one section, read [Build and run](#build-and-run) and
 
 ## What exists today
 
-A basic game window and loop exist. M0 and M1 remain unverified on Linux:
+A basic game window and loop exist. The Peridot rename has not yet been
+verified on Linux; real Linux desktop and M1 hardware gates remain open:
 
 | Piece | What it does | Where |
 | --- | --- | --- |
 | Build system | Turns source files into libraries, tests and a benchmark | `CMakeLists.txt`, `CMakePresets.json`, `cmake/` |
-| `eng_core` | Math, errors, logging, memory tracking, time, fixed-step timing | `engine/core/` |
-| `eng_platform` | Window, OS events, input, application loop, file system; wraps SDL | `engine/platform/` |
+| `peri_core` | Math, errors, logging, memory tracking, time, fixed-step timing | `engine/core/` |
+| `peri_platform` | Window, OS events, input, application loop, file system; wraps SDL | `engine/platform/` |
 | Tests | Core and platform test cases, run explicitly via CTest | `tests/` |
 | Benchmark | `bench_blank`: measures an empty frame | `benchmarks/` |
 | Tooling | Formatting, static analysis, CI | `tools/`, `.clang-format`, `.clang-tidy`, `.github/workflows/ci.yml` |
@@ -34,8 +35,8 @@ its own frame. The game renderer remains planned for M2.
 2. A **compiler** (MSVC on Windows, GCC/Clang on Linux) turns each `.cpp` into an
    object file. It reads headers to learn what exists in other files.
 3. A **linker** combines object files into either:
-   - a **static library** — a bag of compiled code (`eng_core.lib` / `libeng_core.a`), or
-   - an **executable** — a program with a `main()` (`eng_tests.exe`).
+   - a **static library** — a bag of compiled code (`peri_core.lib` / `libperi_core.a`), or
+   - an **executable** — a program with a `main()` (`peri_tests.exe`).
 4. **CMake** does not compile anything itself. It reads `CMakeLists.txt` and
    generates build files (here: Ninja files) that tell Ninja how to call the
    compiler and linker in the right order.
@@ -90,19 +91,19 @@ memory errors and undefined behavior that normal builds hide.
 Builds are per-preset, so Debug and Release never overwrite each other:
 
 ```
-build/windows-debug/bin/eng_tests.exe
-build/windows-release/bin/eng_tests.exe
-build/linux-asan/bin/eng_tests
+build/windows-debug/bin/peri_tests.exe
+build/windows-release/bin/peri_tests.exe
+build/linux-asan/bin/peri_tests
 ```
 
 The test program also accepts a filter:
-`eng_tests.exe memory` runs only tests whose name contains "memory".
+`peri_tests.exe memory` runs only tests whose name contains "memory".
 
 ---
 
 ## Tour of the code
 
-### `engine/core/include/eng/core/`
+### `engine/core/include/peri/core/`
 
 Headers: the *interface* of the core. Other code includes these.
 
@@ -114,12 +115,12 @@ Headers: the *interface* of the core. Other code includes these.
 | `log.hpp` | Logging API, levels, replaceable sink |
 | `memory.hpp` | Tracked allocation API and memory statistics |
 | `time.hpp` | Monotonic clock and `Stopwatch` |
-| `assert.hpp` | `ENG_ASSERT` for programmer bugs only |
+| `assert.hpp` | `PERI_ASSERT` for programmer bugs only |
 | `version.hpp` | Generated from the root `CMakeLists.txt`; do not edit the generated copy |
 
 ### `engine/core/src/`
 
-Implementations (`.cpp`). Each one is compiled once into `eng_core`.
+Implementations (`.cpp`). Each one is compiled once into `peri_core`.
 
 - `log.cpp` — formats records into a fixed buffer, then calls the sink. It uses
   a mutex for sink selection; sink callbacks can run concurrently and must synchronize.
@@ -173,8 +174,8 @@ translation unit.
 
 ### Namespaces
 
-`namespace eng { ... }` puts names in a named scope, so `eng::Result` cannot
-clash with another library's `Result`. `eng::mem`, `eng::time` group related
+`namespace peri { ... }` puts names in a named scope, so `peri::Result` cannot
+clash with another library's `Result`. `peri::mem`, `peri::time` group related
 functions. Internal helpers live in an unnamed `namespace { ... }` inside a
 `.cpp`, which makes them private to that file.
 
@@ -231,13 +232,13 @@ and is now fixed and tested.
 
 ## Window, input and the main loop
 
-`eng::App` is the smallest useful game loop:
+`peri::App` is the smallest useful game loop:
 
 ```cpp
-eng::AppConfig config;               // window size, title, fixed step, FPS limit
+peri::AppConfig config;               // window size, title, fixed step, FPS limit
 config.window.title = "my game";
 
-auto app = eng::App::create(config);
+auto app = peri::App::create(config);
 if (app.is_error()) { /* log and exit */ }
 
 app.value()->run(
@@ -263,7 +264,7 @@ the loop must not try to simulate seconds of catch-up in one frame; extra steps
 are dropped and counted.
 
 A game should not call `SDL_*` directly. If a feature is missing, add it to
-`eng_platform` and expose an engine type.
+`peri_platform` and expose an engine type.
 
 ## Actions, logging, and the diagnostic display
 
@@ -273,8 +274,8 @@ persistent remapping is implemented. For example:
 
 ```cpp
 auto& actions = app.value()->actions();
-if (actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_error() ||
-    actions.bind("jump", eng::ActionBinding::gamepad(eng::GamepadButton::south)).is_error()) {
+if (actions.bind("jump", peri::ActionBinding::key(peri::Key::space)).is_error() ||
+    actions.bind("jump", peri::ActionBinding::gamepad(peri::GamepadButton::south)).is_error()) {
     // Report invalid configuration or capacity exhaustion.
 }
 // In a callback: actions.down("jump"), actions.pressed("jump"), etc.
@@ -297,9 +298,9 @@ Edges are only valid during the fixed update that receives them. The raw
 gameplay decisions. Axis bindings, text input and saved/remappable controls are
 not implemented yet.
 
-To enable file logging, include `eng/platform/file_log.hpp`, call
-`FileLog::open("engine.log", 1024 * 1024, 3)`, check the result, then install
-`set_log_sink(&eng::FileLog::sink, log.get())`. Records also go to stderr and
+To enable file logging, include `peri/platform/file_log.hpp`, call
+`FileLog::open("peri.log", 1024 * 1024, 3)`, check the result, then install
+`set_log_sink(&peri::FileLog::sink, log.get())`. Records also go to stderr and
 are flushed to the OS after each write, but this is **not** a durable sync or
 crash handler. Check `log->status()` for write failures. Stop all logging
 threads, restore `set_log_sink(nullptr, nullptr)`, and only then destroy the log;
@@ -343,7 +344,7 @@ meaningful from a Release build, and the machine plus commit must be recorded.
 
 ### Memory tracking
 
-Every allocation goes through `eng::mem::allocate(bytes, alignment, tag)`.
+Every allocation goes through `peri::mem::allocate(bytes, alignment, tag)`.
 The pointer it returns is preceded by a small header:
 
 ```
@@ -367,12 +368,12 @@ visible. Arenas and pools (M6) will be built on top of it.
 Functions that can fail return `Result<T>` or `Status`. The caller must look at
 the result; `[[nodiscard]]` makes ignoring it a compiler warning. No exceptions
 cross a module boundary, so the C ABI (M8) and callbacks stay simple. An
-`ENG_ASSERT` is only for "this is a programming mistake", never for a missing
+`PERI_ASSERT` is only for "this is a programming mistake", never for a missing
 file or a lost audio device.
 
 ### Logging
 
-Call `ENG_LOG_INFO("render", "loaded %d sprites", count)`. The category is a
+Call `PERI_LOG_INFO("render", "loaded %d sprites", count)`. The category is a
 short static string. Tests install their own sink, so they can assert on records
 without parsing stderr. An opt-in platform file sink also writes to stderr and
 rotates files. Stop logging threads and restore the default sink before destroying it.
@@ -388,7 +389,7 @@ surfaces later for save files, where jumps are handled explicitly.
 
 ### Add a math function
 
-1. Put it in `engine/core/include/eng/core/math.hpp`, marked `constexpr`/`inline`
+1. Put it in `engine/core/include/peri/core/math.hpp`, marked `constexpr`/`inline`
    where possible.
 2. Add a `TEST_CASE` in `tests/test_math.cpp`.
 3. Build and run the tests; formatting is checked by `tools/check_format.py`.
@@ -401,7 +402,7 @@ sense. New test files must be listed in `tests/CMakeLists.txt`.
 
 ### Add a new core module
 
-Create `engine/core/include/eng/core/<name>.hpp` and
+Create `engine/core/include/peri/core/<name>.hpp` and
 `engine/core/src/<name>.cpp`, add the `.cpp` to `engine/core/CMakeLists.txt`,
 add tests, and update this guide's file table.
 
@@ -425,7 +426,7 @@ Edit `VERSION` in the root `CMakeLists.txt` only. The generated header and
 | **Monotonic clock** | A clock that only moves forward |
 | **RAII** | Tying a resource's lifetime to an object's scope |
 | **UB** | Undefined behavior: code whose result the language does not define |
-| **SDL** | Cross-platform library for windows, input, audio and threads; wrapped by `eng_platform` |
+| **SDL** | Cross-platform library for windows, input, audio and threads; wrapped by `peri_platform` |
 | **Fixed step** | Gameplay always advances by the same `dt`, regardless of frame rate |
 | **Interpolation alpha** | 0..1 fraction between two simulation steps, used for smooth drawing |
 

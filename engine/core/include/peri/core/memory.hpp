@@ -20,9 +20,9 @@
 
 #include <cstddef>
 
-#include "eng/core/types.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng::mem {
+namespace peri::mem {
 
 enum class Tag : u8 {
     general = 0,
@@ -64,4 +64,4 @@ void deallocate(void* pointer) noexcept;
 
 [[nodiscard]] const char* tag_name(Tag tag) noexcept;
 
-}  // namespace eng::mem
+}  // namespace peri::mem

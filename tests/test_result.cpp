@@ -4,19 +4,19 @@
 #include <string>
 #include <utility>
 
-#include "eng/core/result.hpp"
+#include "peri/core/result.hpp"
 
 TEST_CASE(result_success_and_failure) {
-    using eng::ErrorCode;
+    using peri::ErrorCode;
 
-    eng::Result<int> good(42);
+    peri::Result<int> good(42);
     CHECK(good.is_ok());
     CHECK(!good.is_error());
     CHECK(static_cast<bool>(good));
     CHECK(good.value() == 42);
     CHECK(good.value_or(7) == 42);
 
-    eng::Result<int> bad(eng::Error{ErrorCode::not_found, "missing"});
+    peri::Result<int> bad(peri::Error{ErrorCode::not_found, "missing"});
     CHECK(bad.is_error());
     CHECK(!bad.is_ok());
     CHECK(!static_cast<bool>(bad));
@@ -26,39 +26,39 @@ TEST_CASE(result_success_and_failure) {
 }
 
 TEST_CASE(result_status) {
-    using eng::ErrorCode;
+    using peri::ErrorCode;
 
-    const eng::Status ok = eng::Status::ok();
+    const peri::Status ok = peri::Status::ok();
     CHECK(ok.is_ok());
     CHECK(!ok.is_error());
     CHECK(static_cast<bool>(ok));
 
-    const eng::Status failed = eng::Status::failure(ErrorCode::io_failure, "disk");
+    const peri::Status failed = peri::Status::failure(ErrorCode::io_failure, "disk");
     CHECK(failed.is_error());
     CHECK(!static_cast<bool>(failed));
     CHECK(failed.error().code == ErrorCode::io_failure);
 }
 
 TEST_CASE(result_move_only_value) {
-    eng::Result<std::unique_ptr<int>> result(std::make_unique<int>(11));
+    peri::Result<std::unique_ptr<int>> result(std::make_unique<int>(11));
     REQUIRE(result.is_ok());
     CHECK(*result.value() == 11);
 
-    eng::Result<std::unique_ptr<int>> moved(std::move(result));
+    peri::Result<std::unique_ptr<int>> moved(std::move(result));
     REQUIRE(moved.is_ok());
     CHECK(*moved.value() == 11);
 }
 
 TEST_CASE(result_move_and_copy_string) {
-    eng::Result<std::string> text(std::string("hello"));
+    peri::Result<std::string> text(std::string("hello"));
     REQUIRE(text.is_ok());
     CHECK(text.value() == "hello");
 
-    eng::Result<std::string> copy = text;
+    peri::Result<std::string> copy = text;
     REQUIRE(copy.is_ok());
     CHECK(copy.value() == "hello");
 
-    eng::Result<std::string> moved = std::move(text);
+    peri::Result<std::string> moved = std::move(text);
     REQUIRE(moved.is_ok());
     CHECK(moved.value() == "hello");
 
@@ -66,10 +66,10 @@ TEST_CASE(result_move_and_copy_string) {
     REQUIRE(copy.is_ok());
     CHECK(copy.value() == "hello");
 
-    eng::Result<std::string> failed(eng::Error{eng::ErrorCode::corrupted_data, "bad"});
+    peri::Result<std::string> failed(peri::Error{peri::ErrorCode::corrupted_data, "bad"});
     copy = failed;
     CHECK(copy.is_error());
-    CHECK(copy.error().code == eng::ErrorCode::corrupted_data);
+    CHECK(copy.error().code == peri::ErrorCode::corrupted_data);
 }
 
 TEST_CASE(result_error_destructor_is_called) {
@@ -91,7 +91,7 @@ TEST_CASE(result_error_destructor_is_called) {
 
     int destructions = 0;
     {
-        eng::Result<Tracker> result{Tracker(&destructions)};
+        peri::Result<Tracker> result{Tracker(&destructions)};
         CHECK(result.is_ok());
     }
     CHECK(destructions == 1);

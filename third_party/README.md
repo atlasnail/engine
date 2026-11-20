@@ -7,7 +7,17 @@ benchmark suites on both platforms.
 | Dependency | Version | License | Used by | Pin |
 | --- | --- | --- | --- | --- |
 | SDL | **3.4.20** | Zlib | `engine/platform` | URL + SHA-256 in `third_party/CMakeLists.txt` |
-| glad (OpenGL loader) | **2.0.8** | MIT (Khronos headers keep their notice) | M2 renderer, via `eng::gl_loader` | Generated output vendored in `third_party/glad/`; generator archive pinned by SHA-256 in its README |
+| glad (OpenGL loader) | **2.0.8** | MIT (Khronos headers keep their notice) | M2 renderer, via `peri::gl_loader` | Generated output vendored in `third_party/glad/`; generator archive pinned by SHA-256 in its README |
+| Manrope variable font | **4.505** | SIL OFL 1.1 | Brand assets only; not linked into engine | Google Fonts commit `b31870aff700ab7a1d74fa0c6887d95beb9e0037`, SHA-256 `3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6` |
+
+## Manrope 4.505
+
+- Source: [Google Fonts, pinned commit](https://github.com/google/fonts/tree/b31870aff700ab7a1d74fa0c6887d95beb9e0037/ofl/manrope).
+- Vendored font and license: `brand/fonts/Manrope-Variable.ttf` and
+  `brand/fonts/OFL.txt`. Used for brand work, not engine builds. Upstream is
+  maintained through Google Fonts; the pin updates only in a reviewed change.
+- Why: modern, commercially usable typography under the SIL OFL 1.1. See
+  ADR-0011 and `brand/README.md` for license and logo-use details.
 
 ## SDL 3.4.20
 

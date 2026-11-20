@@ -1,4 +1,4 @@
-#include "eng/platform/app.hpp"
+#include "peri/platform/app.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -20,14 +20,14 @@
 
 #include <SDL3/SDL.h>
 
-#include "eng/core/assert.hpp"
-#include "eng/core/fixed_step.hpp"
-#include "eng/core/log.hpp"
-#include "eng/core/time.hpp"
-#include "eng/platform/sdl.hpp"
 #include "input_access.hpp"
+#include "peri/core/assert.hpp"
+#include "peri/core/fixed_step.hpp"
+#include "peri/core/log.hpp"
+#include "peri/core/time.hpp"
+#include "peri/platform/sdl.hpp"
 
-namespace eng {
+namespace peri {
 
 namespace {
 
@@ -106,7 +106,7 @@ u64 App::dropped_steps() const noexcept {
 
 int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameObserver& observer,
              const StatsDisplay& display) {
-    ENG_ASSERT(!has_run_);
+    PERI_ASSERT(!has_run_);
     if (has_run_) {
         return 1;
     }
@@ -118,7 +118,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         overlay_renderer_ =
             SDL_CreateRenderer(static_cast<SDL_Window*>(window_->native_handle()), "software");
         if (overlay_renderer_ == nullptr) {
-            ENG_LOG_ERROR("app", "could not create frame stats renderer: %s", SDL_GetError());
+            PERI_LOG_ERROR("app", "could not create frame stats renderer: %s", SDL_GetError());
             return 1;
         }
     }
@@ -135,7 +135,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
             }
             frame_log << '\n';
         } else {
-            ENG_LOG_WARN("app", "could not open frame log %s", config_.frame_log_path);
+            PERI_LOG_WARN("app", "could not open frame log %s", config_.frame_log_path);
         }
     }
 
@@ -149,7 +149,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
     while (!window_->should_close() && !quit_requested_) {
         double cpu_start = 0.0;
         if (config_.measure_frame_cpu && !thread_cpu_seconds(cpu_start)) {
-            ENG_LOG_ERROR("app", "could not read frame CPU clock at start");
+            PERI_LOG_ERROR("app", "could not read frame CPU clock at start");
             return 1;
         }
         window_->pump_events(input_);
@@ -163,7 +163,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         } else {
             const Status input_status = actions_.update(input_);
             if (input_status.is_error()) {
-                ENG_LOG_ERROR("app", "input delivery failed: %s", input_status.error().message);
+                PERI_LOG_ERROR("app", "input delivery failed: %s", input_status.error().message);
                 return 1;
             }
         }
@@ -190,7 +190,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
 
         const double frame_seconds = delta.count();
 
-        eng::time::Stopwatch update_watch;
+        peri::time::Stopwatch update_watch;
         const int steps = timestep.advance(frame_seconds);
         for (int step = 0; step < steps; ++step) {
             actions_.begin_step();
@@ -220,7 +220,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
             if (display) {
                 const Status status = display(text);
                 if (status.is_error()) {
-                    ENG_LOG_ERROR("app", "frame stats display failed: %s", status.error().message);
+                    PERI_LOG_ERROR("app", "frame stats display failed: %s", status.error().message);
                     return 1;
                 }
             } else {
@@ -229,7 +229,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
                     !SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255) ||
                     !SDL_RenderDebugText(renderer, 8.0f, 8.0f, text) ||
                     !SDL_RenderPresent(renderer)) {
-                    ENG_LOG_ERROR("app", "frame stats overlay failed: %s", SDL_GetError());
+                    PERI_LOG_ERROR("app", "frame stats overlay failed: %s", SDL_GetError());
                     return 1;
                 }
             }
@@ -239,7 +239,7 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
         if (config_.measure_frame_cpu) {
             double cpu_end = 0.0;
             if (!thread_cpu_seconds(cpu_end) || cpu_end < cpu_start) {
-                ENG_LOG_ERROR("app", "could not read frame CPU clock at end");
+                PERI_LOG_ERROR("app", "could not read frame CPU clock at end");
                 return 1;
             }
             cpu_seconds = cpu_end - cpu_start;
@@ -277,4 +277,4 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
     return 0;
 }
 
-}  // namespace eng
+}  // namespace peri

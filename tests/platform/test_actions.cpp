@@ -3,27 +3,27 @@
 #include <string>
 
 #include "../../engine/platform/src/input_access.hpp"
-#include "eng/platform/input.hpp"
+#include "peri/platform/input.hpp"
 
-using eng::platform::detail::InputAccess;
+using peri::platform::detail::InputAccess;
 
 TEST_CASE(actions_queue_edges_across_frames_and_steps) {
-    eng::ActionMap actions;
-    eng::InputState input;
-    REQUIRE(actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_ok());
-    REQUIRE(actions.bind("jump", eng::ActionBinding::mouse(eng::MouseButton::left)).is_ok());
-    REQUIRE(actions.bind("jump", eng::ActionBinding::gamepad(eng::GamepadButton::south)).is_ok());
-    CHECK(actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_error());
-    CHECK(actions.bind("", eng::ActionBinding::key(eng::Key::space)).is_error());
-    CHECK(actions.bind("bad", eng::ActionBinding::key(eng::Key::unknown)).is_error());
+    peri::ActionMap actions;
+    peri::InputState input;
+    REQUIRE(actions.bind("jump", peri::ActionBinding::key(peri::Key::space)).is_ok());
+    REQUIRE(actions.bind("jump", peri::ActionBinding::mouse(peri::MouseButton::left)).is_ok());
+    REQUIRE(actions.bind("jump", peri::ActionBinding::gamepad(peri::GamepadButton::south)).is_ok());
+    CHECK(actions.bind("jump", peri::ActionBinding::key(peri::Key::space)).is_error());
+    CHECK(actions.bind("", peri::ActionBinding::key(peri::Key::space)).is_error());
+    CHECK(actions.bind("bad", peri::ActionBinding::key(peri::Key::unknown)).is_error());
 
     // Several pumps without a simulation update, including two complete taps.
-    InputAccess::set_key(input, eng::Key::space, true);
-    InputAccess::set_key(input, eng::Key::space, false);
+    InputAccess::set_key(input, peri::Key::space, true);
+    InputAccess::set_key(input, peri::Key::space, false);
     REQUIRE(actions.update(input).is_ok());
     InputAccess::begin_frame(input);
-    InputAccess::set_key(input, eng::Key::space, true);
-    InputAccess::set_key(input, eng::Key::space, false);
+    InputAccess::set_key(input, peri::Key::space, true);
+    InputAccess::set_key(input, peri::Key::space, false);
     REQUIRE(actions.update(input).is_ok());
     InputAccess::begin_frame(input);
     REQUIRE(actions.update(input).is_ok());
@@ -45,14 +45,14 @@ TEST_CASE(actions_queue_edges_across_frames_and_steps) {
 }
 
 TEST_CASE(actions_binding_overlap_and_disconnect) {
-    eng::ActionMap actions;
-    eng::InputState input;
-    REQUIRE(actions.bind("fire", eng::ActionBinding::key(eng::Key::space)).is_ok());
-    REQUIRE(actions.bind("fire", eng::ActionBinding::gamepad(eng::GamepadButton::south)).is_ok());
+    peri::ActionMap actions;
+    peri::InputState input;
+    REQUIRE(actions.bind("fire", peri::ActionBinding::key(peri::Key::space)).is_ok());
+    REQUIRE(actions.bind("fire", peri::ActionBinding::gamepad(peri::GamepadButton::south)).is_ok());
     InputAccess::set_gamepad_connected(input, true);
-    InputAccess::set_key(input, eng::Key::space, true);
-    InputAccess::set_gamepad_button(input, eng::GamepadButton::south, true);
-    InputAccess::set_key(input, eng::Key::space, false);
+    InputAccess::set_key(input, peri::Key::space, true);
+    InputAccess::set_gamepad_button(input, peri::GamepadButton::south, true);
+    InputAccess::set_key(input, peri::Key::space, false);
     REQUIRE(actions.update(input).is_ok());
     actions.begin_step();
     CHECK(actions.pressed("fire"));
@@ -63,7 +63,7 @@ TEST_CASE(actions_binding_overlap_and_disconnect) {
     InputAccess::begin_frame(input);
     InputAccess::set_gamepad_connected(input, false);
     REQUIRE(actions.update(input).is_ok());
-    CHECK(input.gamepad_button_released(eng::GamepadButton::south));
+    CHECK(input.gamepad_button_released(peri::GamepadButton::south));
     actions.begin_step();
     CHECK(actions.released("fire"));
     CHECK(!actions.down("fire"));
@@ -72,28 +72,30 @@ TEST_CASE(actions_binding_overlap_and_disconnect) {
 }
 
 TEST_CASE(actions_capacity_and_names) {
-    eng::ActionMap actions;
-    for (eng::usize i = 0; i < eng::ActionMap::max_actions; ++i) {
-        REQUIRE(actions.bind(std::to_string(i), eng::ActionBinding::key(eng::Key::key_a)).is_ok());
+    peri::ActionMap actions;
+    for (peri::usize i = 0; i < peri::ActionMap::max_actions; ++i) {
+        REQUIRE(
+            actions.bind(std::to_string(i), peri::ActionBinding::key(peri::Key::key_a)).is_ok());
     }
-    CHECK(actions.bind("overflow", eng::ActionBinding::key(eng::Key::key_a)).is_error());
-    CHECK(actions.bind(std::string(64, 'a'), eng::ActionBinding::key(eng::Key::key_a)).is_error());
+    CHECK(actions.bind("overflow", peri::ActionBinding::key(peri::Key::key_a)).is_error());
     CHECK(
-        actions.bind(std::string("a\0b", 3), eng::ActionBinding::key(eng::Key::key_a)).is_error());
+        actions.bind(std::string(64, 'a'), peri::ActionBinding::key(peri::Key::key_a)).is_error());
+    CHECK(actions.bind(std::string("a\0b", 3), peri::ActionBinding::key(peri::Key::key_a))
+              .is_error());
 }
 
 TEST_CASE(actions_pause_synchronizes_without_stale_edges_or_overflow) {
-    eng::ActionMap actions;
-    eng::InputState input;
-    REQUIRE(actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_ok());
-    REQUIRE(actions.bind("jump", eng::ActionBinding::mouse(eng::MouseButton::left)).is_ok());
+    peri::ActionMap actions;
+    peri::InputState input;
+    REQUIRE(actions.bind("jump", peri::ActionBinding::key(peri::Key::space)).is_ok());
+    REQUIRE(actions.bind("jump", peri::ActionBinding::mouse(peri::MouseButton::left)).is_ok());
 
     // More than one action queue's worth of transitions per pump and many
     // pumps: the last held state, not the event buffer, determines recovery.
     for (int frame = 0; frame < 140; ++frame) {
         InputAccess::begin_frame(input);
         for (int i = 0; i < 300; ++i) {
-            InputAccess::set_key(input, eng::Key::space, (i % 2) == 0);
+            InputAccess::set_key(input, peri::Key::space, (i % 2) == 0);
         }
         actions.synchronize(input);
     }
@@ -103,20 +105,20 @@ TEST_CASE(actions_pause_synchronizes_without_stale_edges_or_overflow) {
     CHECK(!actions.released("jump"));
 
     InputAccess::begin_frame(input);
-    InputAccess::set_key(input, eng::Key::space, true);
-    InputAccess::mouse_button(input, eng::MouseButton::left, true);
+    InputAccess::set_key(input, peri::Key::space, true);
+    InputAccess::mouse_button(input, peri::MouseButton::left, true);
     actions.synchronize(input);
     actions.begin_step();
     CHECK(actions.down("jump"));
     CHECK(actions.pressed("jump"));
     InputAccess::begin_frame(input);
-    InputAccess::set_key(input, eng::Key::space, false);
+    InputAccess::set_key(input, peri::Key::space, false);
     actions.synchronize(input);
     actions.begin_step();
     CHECK(actions.down("jump"));
     CHECK(!actions.released("jump"));
     InputAccess::begin_frame(input);
-    InputAccess::mouse_button(input, eng::MouseButton::left, false);
+    InputAccess::mouse_button(input, peri::MouseButton::left, false);
     actions.synchronize(input);
     actions.begin_step();
     CHECK(!actions.down("jump"));
@@ -126,8 +128,8 @@ TEST_CASE(actions_pause_synchronizes_without_stale_edges_or_overflow) {
 
     // A pre-pause queued tap should not be replayed after synchronization.
     InputAccess::begin_frame(input);
-    InputAccess::set_key(input, eng::Key::space, true);
-    InputAccess::set_key(input, eng::Key::space, false);
+    InputAccess::set_key(input, peri::Key::space, true);
+    InputAccess::set_key(input, peri::Key::space, false);
     REQUIRE(actions.update(input).is_ok());
     actions.synchronize(input);
     actions.begin_step();
@@ -136,12 +138,12 @@ TEST_CASE(actions_pause_synchronizes_without_stale_edges_or_overflow) {
 }
 
 TEST_CASE(actions_report_both_buffer_overflows) {
-    eng::ActionMap actions;
-    eng::InputState input;
-    REQUIRE(actions.bind("jump", eng::ActionBinding::key(eng::Key::space)).is_ok());
+    peri::ActionMap actions;
+    peri::InputState input;
+    REQUIRE(actions.bind("jump", peri::ActionBinding::key(peri::Key::space)).is_ok());
     for (int i = 0; i < 129; ++i) {
         InputAccess::begin_frame(input);
-        InputAccess::set_key(input, eng::Key::space, (i % 2) == 0);
+        InputAccess::set_key(input, peri::Key::space, (i % 2) == 0);
         const auto status = actions.update(input);
         if (i < 128) {
             REQUIRE(status.is_ok());
@@ -149,10 +151,10 @@ TEST_CASE(actions_report_both_buffer_overflows) {
             CHECK(status.is_error());
         }
     }
-    eng::InputState burst;
+    peri::InputState burst;
     for (int i = 0; i < 257; ++i) {
-        InputAccess::set_key(burst, eng::Key::space, (i % 2) == 0);
+        InputAccess::set_key(burst, peri::Key::space, (i % 2) == 0);
     }
-    eng::ActionMap another;
+    peri::ActionMap another;
     CHECK(another.update(burst).is_error());
 }

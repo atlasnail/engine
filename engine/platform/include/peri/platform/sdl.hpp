@@ -12,9 +12,9 @@
 // The first acquire() initialises SDL; the last release quits it. Move-only.
 // Acquire and release on the main thread.
 
-#include "eng/core/result.hpp"
+#include "peri/core/result.hpp"
 
-namespace eng {
+namespace peri {
 
 class SdlSession {
 public:
@@ -44,4 +44,4 @@ private:
 // it; it is exposed so callers can check their own lifetime ordering.
 [[nodiscard]] bool sdl_session_active() noexcept;
 
-}  // namespace eng
+}  // namespace peri

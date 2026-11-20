@@ -1,11 +1,12 @@
-# 2D engine (working name)
+# Peridot Engine
 
 This is a small game engine for making 2D games on Windows and Linux. It is
 written in C++20 and built from scratch, so the code base stays small enough to
 read and understand.
 
-The working name is "engine" and the code namespace is `eng`. That is not a
-final name, just a placeholder that is easy to replace later.
+The project is called **Peridot Engine**, with `peri` as its code namespace and
+build prefix. The name has not been cleared by a trademark search. The logo,
+font and usage guidance are in [`brand/`](brand/README.md).
 
 ## What it is meant to be
 
@@ -38,9 +39,10 @@ There is **no way to draw a game yet**. No sprites, no textures, no text font,
 no sound. That is the next big chunk of work. Right now the only thing that can
 draw is the debug readout.
 
-Windows is where the work has been done by hand. Linux now builds and passes its
-tests in GitHub Actions, but only with a fake display driver, so nobody has yet
-opened a window or used a controller on a real Linux desktop.
+Windows is where the work has been done by hand. Earlier Linux GitHub Actions
+builds and tests passed using a fake display driver, but they predate the
+Peridot rename. Nobody has yet opened a window or used a controller on a real
+Linux desktop.
 
 ## Building it
 
@@ -87,13 +89,13 @@ optional. Exact problems found so far are in `docs/status.md`.
 Each build type gets its own folder, so they do not overwrite each other:
 
 ```
-build/windows-debug/bin/eng_tests.exe
-build/windows-debug/bin/eng_platform_tests.exe
+build/windows-debug/bin/peri_tests.exe
+build/windows-debug/bin/peri_platform_tests.exe
 build/windows-release/bin/bench_blank.exe
 ```
 
 The test programs take an optional name filter, for example
-`eng_tests.exe memory` runs only the memory tests.
+`peri_tests.exe memory` runs only the memory tests.
 
 ## Trying the frame counter
 
@@ -154,4 +156,5 @@ without adding any store SDK to the engine now.
 
 ## License
 
-MIT. See `LICENSE`.
+Engine code is MIT. See `LICENSE`. The bundled Manrope font has its own SIL
+Open Font License; see `brand/fonts/OFL.txt` and `brand/README.md`.

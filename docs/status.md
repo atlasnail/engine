@@ -11,14 +11,30 @@ Last updated: 2026-11-20
   leak check now fails the test run instead of being skipped. The only caveat is
   what that check measures; see the limitation list.
 - **M1 is in progress:** SDL now has an explicit, reference-counted lifecycle
-  (`eng::SdlSession`), so shutdown is deterministic. Window, input, loop and
+  (`peri::SdlSession`), so shutdown is deterministic. Window, input, loop and
   file-system work is done; the remaining M1 gates are the hardware and
   visible-window checks, and a real CPU-time measurement.
 - Version `0.1.0-dev`; implementation: core and SDL3 platform, tests and
   `bench_blank`. No game renderer or audio.
-- `main` is pushed to `https://github.com/atlasnail/engine.git`. Linux CI has
-  run and passes; it uses SDL's dummy video driver, so no real display, GPU or
-  gamepad has been exercised on Linux.
+- The existing remote is `https://github.com/atlasnail/engine.git`. Earlier
+  Linux CI passed before the rename, using SDL's dummy video driver; the rename
+  has not yet been verified on Linux or on a real Linux display or gamepad.
+
+## Latest session: Peridot Engine rename and brand
+
+- Project name is Peridot Engine, shorthand `peri`; namespace, include paths,
+  CMake targets/options, macros and test binaries use the new prefix. See
+  ADR-0011 and `CHANGELOG.md` for the breaking migration. The repository URL,
+  `engine/` source tree and historical evidence remain unchanged. The guide's
+  Linux library name and the CMake cache migration instructions were corrected
+  during review; `AGENTS.md` now matches the recorded M0/M1 status. The outlined
+  wordmarks were aligned geometrically with the gem.
+- `brand/` contains the faceted SVG mark, outlined wordmark variants, palette
+  and the pinned, OFL-licensed Manrope font; see ADR-0011. The name and logo
+  have not been legally cleared. Windows MSVC Debug configure/build and all
+  three CTest entries passed; formatting passed. SVG files parsed as XML but
+  were not visually reviewed. Linux was not run for this change; prior CI
+  evidence below predates it. No milestone or performance gate is closed.
 
 ## Latest session: withhold Windows CPU percentiles
 
@@ -232,8 +248,9 @@ Last updated: 2026-11-20
    the standard library, but it does not flag state that is alive for the whole
    process by design (the harness registries, CRT stdio buffers). The engine's
    tracking allocator still fails on engine allocations that are never released.
-2. Linux is verified only headless. X11/Wayland window behavior, DPI, fullscreen
-   and focus handling on a real desktop are untested.
+2. Linux verification before the rename was headless only; the renamed code has
+   not been built or tested on Linux. X11/Wayland window behavior, DPI,
+   fullscreen and focus handling on a real desktop are untested.
 3. M1 parity and hardware tests are incomplete: real gamepad, visible window,
    fullscreen, focus, DPI/minimize behavior, Linux display drivers, shutdown.
    Window tests skip when no video driver is available.
@@ -246,7 +263,7 @@ Last updated: 2026-11-20
    Dropped fixed steps mean those simulation steps do not consume input; the
    queue is not a replay log.
    Mouse movement and wheel remain frame-scoped. SDL and the selected gamepad
-   are process-global, but their lifetime is now explicit: `eng::SdlSession`
+   are process-global, but their lifetime is now explicit: `peri::SdlSession`
    initialises on the first acquire and calls `SDL_Quit` on the last release.
 6. Per-frame tracked-allocation claims do not cover ordinary STL/SDL allocation;
    no comprehensive allocation audit was done. CSV logging uses a stream.
@@ -261,12 +278,14 @@ Last updated: 2026-11-20
 
 ## Next steps
 
+- Verify the Peridot rename with Linux build and tests; previous Linux CI
+  predates it.
 - Remaining M1 gates: visible-window checks on both platforms, real gamepad,
   minimized behavior, a real CPU-time measurement, and the GL clear/VSync pass
   through a real context.
 - Do not start the renderer (M2) or add store SDKs until sequencing is agreed.
 
-## Gates closed this session
+## Gates closed in an earlier session
 
 - **M0 is closed.** With the CRT leak check wired into both test entry points,
   every M0 exit criterion now has evidence on Windows locally and on Linux in
@@ -277,8 +296,8 @@ Last updated: 2026-11-20
   `--warnings-as-errors=*`. The header filter now covers `engine/.*`, previously
   excluding `engine/platform` headers. It is clean today; findings are annotated.
 - **OpenGL loader pinned.** glad 2.0.8, GL 3.3 core, no extensions, generated
-  once and vendored in `third_party/glad/` (ADR-0010). Builds as
-  `eng::gl_loader`; it needs no Python or network. The root project now enables
+  once and vendored in `third_party/glad/` (ADR-0010). Now builds as
+  `peri::gl_loader`; it needs no Python or network. The root project enables
   the C language because this loader and SDL are C.
 
 ## CI fixes found by the first Linux run

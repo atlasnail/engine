@@ -1,13 +1,13 @@
-#include "eng/platform/sdl.hpp"
+#include "peri/platform/sdl.hpp"
 
 #include <mutex>
 
 #include <SDL3/SDL.h>
 
-#include "eng/core/log.hpp"
+#include "peri/core/log.hpp"
 #include "sdl_internal.hpp"
 
-namespace eng {
+namespace peri {
 namespace {
 
 // SDL exposes one global library state, so the reference count that guards it is
@@ -18,13 +18,13 @@ int g_session_count = 0;
 
 void initialise() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        ENG_LOG_ERROR("platform", "SDL_Init(SDL_INIT_VIDEO) failed: %s", SDL_GetError());
+        PERI_LOG_ERROR("platform", "SDL_Init(SDL_INIT_VIDEO) failed: %s", SDL_GetError());
         return;
     }
     if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
         // A machine without a controller subsystem is still usable; input falls
         // back to keyboard and mouse.
-        ENG_LOG_WARN("platform", "gamepad subsystem unavailable: %s", SDL_GetError());
+        PERI_LOG_WARN("platform", "gamepad subsystem unavailable: %s", SDL_GetError());
     }
 }
 
@@ -85,4 +85,4 @@ bool sdl_session_active() noexcept {
     return g_session_count > 0;
 }
 
-}  // namespace eng
+}  // namespace peri

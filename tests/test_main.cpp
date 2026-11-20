@@ -1,8 +1,8 @@
 #include "framework.hpp"
 
-#include "eng/core/memory.hpp"
+#include "peri/core/memory.hpp"
 
-namespace engtest {
+namespace peritest {
 
 int run_all(int argc, char** argv) {
     const char* filter = argc > 1 ? argv[1] : nullptr;
@@ -36,7 +36,7 @@ int run_all(int argc, char** argv) {
     // A leak anywhere in the engine code is a test failure. The harness's own
     // std::vector storage is not tracked, so this reflects engine allocations
     // only.
-    const eng::usize leaked = eng::mem::live_allocations();
+    const peri::usize leaked = peri::mem::live_allocations();
     if (leaked != 0) {
         std::printf("LEAK: %zu engine allocation(s) were not released\n", leaked);
         ++failed_cases;
@@ -57,4 +57,4 @@ int run_all(int argc, char** argv) {
     return failed_cases == 0 ? 0 : 1;
 }
 
-}  // namespace engtest
+}  // namespace peritest

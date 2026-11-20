@@ -18,7 +18,7 @@ These rules apply from M0 onward. Changing a rule requires a short note in this 
   with the same pinned clang-tidy version as CI (currently 22.1.8). Tests and
   benchmarks are outside the scan. Do not add suppressions to get a change
   through; fix the finding or narrow the check with a recorded reason.
-- Naming: `snake_case` for functions, variables and files; `PascalCase` for types; `kPascalCase` for constants; trailing underscore avoided; namespaces `eng::` (public) and `eng::detail::` (internal).
+- Naming: `snake_case` for functions, variables and files; `PascalCase` for types; `kPascalCase` for constants; trailing underscore avoided; namespaces `peri::` (public) and `peri::detail::` (internal).
 - Headers: `#pragma once`; include what you use; forward-declare in public headers where possible.
 - Components are small and single-purpose; prefer free functions and plain structs to deep hierarchies.
 - Comments explain **why**, constraints and invariants — not what the code does. Every public declaration carries a doc comment with ownership and error behavior.
@@ -29,7 +29,7 @@ These rules apply from M0 onward. Changing a rule requires a short note in this 
 
 | Situation | Mechanism |
 | --- | --- |
-| Programmer bug (invariant violated) | `ENG_ASSERT` in Debug; never rely on it in Release |
+| Programmer bug (invariant violated) | `PERI_ASSERT` in Debug; never rely on it in Release |
 | Expected runtime failure (missing file, bad asset, device loss) | `Result<T>` / status enum, logged with context |
 | Unrecoverable startup failure | Log fatal, attempt dump, exit with documented code |
 | Script error (Lua) | Catch at the script boundary, log, disable that script, game continues |

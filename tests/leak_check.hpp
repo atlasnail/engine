@@ -21,7 +21,7 @@
 #include <crtdbg.h>
 #endif
 
-namespace engtest {
+namespace peritest {
 
 class CrtLeakCheck {
 public:
@@ -63,4 +63,4 @@ private:
 #endif
 };
 
-}  // namespace engtest
+}  // namespace peritest

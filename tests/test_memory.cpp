@@ -3,18 +3,18 @@
 #include <cstdint>
 #include <string>
 
-#include "eng/core/memory.hpp"
+#include "peri/core/memory.hpp"
 
 namespace {
 
-bool is_aligned(const void* pointer, eng::usize alignment) {
-    return (reinterpret_cast<eng::usize>(pointer) % alignment) == 0;
+bool is_aligned(const void* pointer, peri::usize alignment) {
+    return (reinterpret_cast<peri::usize>(pointer) % alignment) == 0;
 }
 
 }  // namespace
 
 TEST_CASE(memory_allocate_and_free_updates_stats) {
-    using namespace eng;
+    using namespace peri;
 
     const mem::Stats before = mem::stats(mem::Tag::test);
 
@@ -34,7 +34,7 @@ TEST_CASE(memory_allocate_and_free_updates_stats) {
 }
 
 TEST_CASE(memory_zero_and_null_are_noops) {
-    using namespace eng;
+    using namespace peri;
 
     const mem::Stats before = mem::total_stats();
 
@@ -48,7 +48,7 @@ TEST_CASE(memory_zero_and_null_are_noops) {
 }
 
 TEST_CASE(memory_honors_requested_alignment) {
-    using namespace eng;
+    using namespace peri;
 
     constexpr usize alignments[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 
@@ -70,7 +70,7 @@ TEST_CASE(memory_honors_requested_alignment) {
 }
 
 TEST_CASE(memory_tags_are_independent) {
-    using namespace eng;
+    using namespace peri;
 
     const mem::Stats scene_before = mem::stats(mem::Tag::scene);
     const mem::Stats audio_before = mem::stats(mem::Tag::audio);
@@ -87,7 +87,7 @@ TEST_CASE(memory_tags_are_independent) {
 }
 
 TEST_CASE(memory_live_allocation_count_returns_to_baseline) {
-    using namespace eng;
+    using namespace peri;
 
     const usize baseline = mem::live_allocations();
 
@@ -103,7 +103,7 @@ TEST_CASE(memory_live_allocation_count_returns_to_baseline) {
 }
 
 TEST_CASE(memory_tag_names_are_stable) {
-    CHECK(eng::mem::tag_name(eng::mem::Tag::render) != nullptr);
-    CHECK(std::string(eng::mem::tag_name(eng::mem::Tag::audio)) == "audio");
-    CHECK(std::string(eng::mem::tag_name(eng::mem::Tag::general)) == "general");
+    CHECK(peri::mem::tag_name(peri::mem::Tag::render) != nullptr);
+    CHECK(std::string(peri::mem::tag_name(peri::mem::Tag::audio)) == "audio");
+    CHECK(std::string(peri::mem::tag_name(peri::mem::Tag::general)) == "general");
 }

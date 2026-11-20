@@ -15,9 +15,9 @@
 #include <string>
 #include <string_view>
 
-#include "eng/core/result.hpp"
+#include "peri/core/result.hpp"
 
-namespace eng::fs {
+namespace peri::fs {
 
 // Reads a whole text file. Returns ErrorCode::not_found when it does not exist,
 // io_failure when it cannot be read.
@@ -41,4 +41,4 @@ Status create_directories(std::string_view path);
 // Directory containing the running executable, with a trailing separator.
 [[nodiscard]] Result<std::string> executable_directory();
 
-}  // namespace eng::fs
+}  // namespace peri::fs

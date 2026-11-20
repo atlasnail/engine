@@ -274,7 +274,7 @@ The example game must exercise sprites, animation, camera, collision, audio, tex
 | --- | --- | --- | --- |
 | 9.1 | Versioned installable SDK layout: headers, static libs, CMake package config, licenses | P0 | `find_package` works from a sample project. |
 | 9.2 | Platform packaging: Windows zip/MSI, Linux tarball + `.desktop`; reproducible build notes | P0 | No runtime dependency surprises. |
-| 9.3 | Project template (`engine new`) and documented game project layout | P1 | Minimal, no generator magic. |
+| 9.3 | Project template (`peri new`) and documented game project layout | P1 | Minimal, no generator magic. |
 | 9.4 | Complete docs pass: getting started, architecture, API reference, upgrade guide, FAQ | P0 | Docs are a 1.0 deliverable. |
 | 9.5 | Compatibility promises published: API tiers, save/asset format, deprecation window | P0 | See ADR-0007. |
 | 9.6 | Release checklist: clean-machine test on both OSes, fresh clone build, soak pass | P0 | Checklist lives in `docs/release-checklist.md`. |

@@ -1,9 +1,9 @@
 # Warning policy shared by every target.
 #
-# Warnings are errors by default (ENG_WARNINGS_AS_ERRORS). The goal is that a
+# Warnings are errors by default (PERI_WARNINGS_AS_ERRORS). The goal is that a
 # clean build is the normal state, so a new warning is always a real signal.
 
-function(eng_apply_warnings target)
+function(peri_apply_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE
             /W4
@@ -12,7 +12,7 @@ function(eng_apply_warnings target)
             /Zc:__cplusplus
             /EHsc
         )
-        if(ENG_WARNINGS_AS_ERRORS)
+        if(PERI_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE /WX)
         endif()
     else()
@@ -31,7 +31,7 @@ function(eng_apply_warnings target)
         # Conversion warnings are noisy while APIs are young. Keep them
         # visible, but do not fail the build on them yet. Revisit at M1.
         target_compile_options(${target} PRIVATE -Wno-error=conversion -Wno-error=sign-conversion)
-        if(ENG_WARNINGS_AS_ERRORS)
+        if(PERI_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE -Werror)
         endif()
     endif()

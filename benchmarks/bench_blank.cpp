@@ -16,7 +16,7 @@
 #include <memory>
 #include <utility>
 
-#include "eng/platform/app.hpp"
+#include "peri/platform/app.hpp"
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    eng::AppConfig config;
+    peri::AppConfig config;
     config.window.title = "bench_blank";
     config.window.width = 1280;
     config.window.height = 720;
@@ -170,14 +170,14 @@ int main(int argc, char** argv) {
     config.measure_frame_cpu = true;
 #endif
 
-    eng::Result<std::unique_ptr<eng::App>> app_result = eng::App::create(config);
+    peri::Result<std::unique_ptr<peri::App>> app_result = peri::App::create(config);
     if (app_result.is_error()) {
         std::printf("could not create app: %s\n", app_result.error().message);
         return 1;
     }
 
-    std::unique_ptr<eng::App> app = std::move(app_result.value());
-    eng::App* app_ptr = app.get();
+    std::unique_ptr<peri::App> app = std::move(app_result.value());
+    peri::App* app_ptr = app.get();
 
     auto frame_ms = std::make_unique<Histogram>();
     std::unique_ptr<Histogram> cpu_ms;
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
     const int exit_code = app->run([](double) {}, [](double) {},
                                    [&frame_ms, &cpu_ms, &warmup_elapsed, &measured_elapsed, app_ptr,
-                                    seconds, warmup_seconds](const eng::FrameInfo& info) {
+                                    seconds, warmup_seconds](const peri::FrameInfo& info) {
                                        if (warmup_elapsed < warmup_seconds) {
                                            warmup_elapsed += info.frame_seconds;
                                            return;

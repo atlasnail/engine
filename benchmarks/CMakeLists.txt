@@ -2,14 +2,14 @@
 # print measured numbers. See docs/performance.md for methodology.
 
 add_executable(bench_blank bench_blank.cpp)
-target_link_libraries(bench_blank PRIVATE eng::platform)
-eng_apply_warnings(bench_blank)
+target_link_libraries(bench_blank PRIVATE peri::platform)
+peri_apply_warnings(bench_blank)
 
 if(WIN32)
     target_link_libraries(bench_blank PRIVATE psapi)
 endif()
 
-if(ENG_BUILD_TESTS)
+if(PERI_BUILD_TESTS)
     add_test(NAME bench_blank_output
         COMMAND "${CMAKE_COMMAND}"
             "-DBENCH_EXE=$<TARGET_FILE:bench_blank>"

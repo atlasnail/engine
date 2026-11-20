@@ -11,14 +11,14 @@
 
 #include <memory>
 
-#include "eng/core/math.hpp"
-#include "eng/core/result.hpp"
-#include "eng/platform/input.hpp"
+#include "peri/core/math.hpp"
+#include "peri/core/result.hpp"
+#include "peri/platform/input.hpp"
 
-namespace eng {
+namespace peri {
 
 struct WindowConfig {
-    const char* title = "engine";
+    const char* title = "Peridot Engine";
     int width = 1280;
     int height = 720;
     bool resizable = true;
@@ -71,4 +71,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace eng
+}  // namespace peri

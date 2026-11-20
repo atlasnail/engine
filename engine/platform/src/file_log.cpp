@@ -1,4 +1,4 @@
-#include "eng/platform/file_log.hpp"
+#include "peri/platform/file_log.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -10,7 +10,7 @@
 #include <system_error>
 #include <utility>
 
-namespace eng {
+namespace peri {
 
 struct FileLog::Impl {
     std::filesystem::path path;
@@ -161,4 +161,4 @@ void FileLog::sink(const LogRecord& record, void* user) noexcept {
     }
 }
 
-}  // namespace eng
+}  // namespace peri

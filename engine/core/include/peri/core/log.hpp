@@ -13,9 +13,9 @@
 // Formatting uses printf-style syntax. The compiler checks the format string
 // where supported (GCC/Clang attribute).
 
-#include "eng/core/types.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng {
+namespace peri {
 
 enum class LogLevel : u8 {
     trace = 0,
@@ -51,17 +51,19 @@ void log_message(LogLevel level, const char* category, const char* format, ...) 
 
 [[nodiscard]] const char* log_level_name(LogLevel level) noexcept;
 
-}  // namespace eng
+}  // namespace peri
 
 // Convenience macros. The category is a short, stable string such as "core",
 // "render" or "assets"; it is not localized and should not be built at runtime.
-#define ENG_LOG_TRACE(category, ...)                                                               \
-    ::eng::log_message(::eng::LogLevel::trace, category, __VA_ARGS__)
-#define ENG_LOG_DEBUG(category, ...)                                                               \
-    ::eng::log_message(::eng::LogLevel::debug, category, __VA_ARGS__)
-#define ENG_LOG_INFO(category, ...) ::eng::log_message(::eng::LogLevel::info, category, __VA_ARGS__)
-#define ENG_LOG_WARN(category, ...) ::eng::log_message(::eng::LogLevel::warn, category, __VA_ARGS__)
-#define ENG_LOG_ERROR(category, ...)                                                               \
-    ::eng::log_message(::eng::LogLevel::error, category, __VA_ARGS__)
-#define ENG_LOG_FATAL(category, ...)                                                               \
-    ::eng::log_message(::eng::LogLevel::fatal, category, __VA_ARGS__)
+#define PERI_LOG_TRACE(category, ...)                                                              \
+    ::peri::log_message(::peri::LogLevel::trace, category, __VA_ARGS__)
+#define PERI_LOG_DEBUG(category, ...)                                                              \
+    ::peri::log_message(::peri::LogLevel::debug, category, __VA_ARGS__)
+#define PERI_LOG_INFO(category, ...)                                                               \
+    ::peri::log_message(::peri::LogLevel::info, category, __VA_ARGS__)
+#define PERI_LOG_WARN(category, ...)                                                               \
+    ::peri::log_message(::peri::LogLevel::warn, category, __VA_ARGS__)
+#define PERI_LOG_ERROR(category, ...)                                                              \
+    ::peri::log_message(::peri::LogLevel::error, category, __VA_ARGS__)
+#define PERI_LOG_FATAL(category, ...)                                                              \
+    ::peri::log_message(::peri::LogLevel::fatal, category, __VA_ARGS__)

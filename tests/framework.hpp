@@ -12,7 +12,7 @@
 #include <cstring>
 #include <vector>
 
-namespace engtest {
+namespace peritest {
 
 using TestFn = void (*)();
 
@@ -57,27 +57,27 @@ inline void report_failure(const char* file, int line, const char* expression) {
     std::fprintf(stderr, "    FAILED %s:%d: %s\n", file, line, expression);
 }
 
-}  // namespace engtest
+}  // namespace peritest
 
 #define TEST_CASE(identifier)                                                                      \
-    static void engtest_case_##identifier();                                                       \
-    static ::engtest::Registrar engtest_registrar_##identifier(#identifier,                        \
-                                                               engtest_case_##identifier);         \
-    static void engtest_case_##identifier()
+    static void peritest_case_##identifier();                                                      \
+    static ::peritest::Registrar peritest_registrar_##identifier(#identifier,                      \
+                                                                 peritest_case_##identifier);      \
+    static void peritest_case_##identifier()
 
 #define CHECK(expression)                                                                          \
     do {                                                                                           \
-        ++::engtest::check_count();                                                                \
+        ++::peritest::check_count();                                                               \
         if (!(expression)) {                                                                       \
-            ::engtest::report_failure(__FILE__, __LINE__, #expression);                            \
+            ::peritest::report_failure(__FILE__, __LINE__, #expression);                           \
         }                                                                                          \
     } while (0)
 
 #define REQUIRE(expression)                                                                        \
     do {                                                                                           \
-        ++::engtest::check_count();                                                                \
+        ++::peritest::check_count();                                                               \
         if (!(expression)) {                                                                       \
-            ::engtest::report_failure(__FILE__, __LINE__, #expression);                            \
+            ::peritest::report_failure(__FILE__, __LINE__, #expression);                           \
             return;                                                                                \
         }                                                                                          \
     } while (0)
@@ -86,7 +86,7 @@ inline void report_failure(const char* file, int line, const char* expression) {
 // driver, no GPU) rather than failing, so CI coverage stays honest.
 #define SKIP_TEST(reason)                                                                          \
     do {                                                                                           \
-        ++::engtest::skip_count();                                                                 \
-        std::printf("SKIP  %s: %s\n", ::engtest::current_test_name(), reason);                     \
+        ++::peritest::skip_count();                                                                \
+        std::printf("SKIP  %s: %s\n", ::peritest::current_test_name(), reason);                    \
         return;                                                                                    \
     } while (0)

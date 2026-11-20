@@ -21,7 +21,7 @@ if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Ins
 set "VSPATH="
 if not exist "%VSWHERE%" goto :fallback
 
-set "VSPATHFILE=%TEMP%\eng_vs_path_%RANDOM%%RANDOM%.txt"
+set "VSPATHFILE=%TEMP%\peri_vs_path_%RANDOM%%RANDOM%.txt"
 "%VSWHERE%" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath > "%VSPATHFILE%" 2>nul
 for /f "usebackq delims=" %%i in ("%VSPATHFILE%") do set "VSPATH=%%i"
 del "%VSPATHFILE%" >nul 2>nul

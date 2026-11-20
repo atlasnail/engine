@@ -33,7 +33,7 @@ changes between updates.
 - **Vendor the generated output** in `third_party/glad/` instead of generating at
   build time. The generator version, archive hash, exact command and license are
   recorded in `third_party/glad/README.md`.
-- Expose it as the static target `eng::gl_loader`. Nothing links it yet; the M2
+- Expose it as the static target `peri::gl_loader`. Nothing links it yet; the M2
   renderer will call `gladLoadGL(SDL_GL_GetProcAddress)` after the context is
   current.
 - Never hand-edit the generated files. Updates replace the directory wholesale

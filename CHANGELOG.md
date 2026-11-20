@@ -9,14 +9,16 @@ releases may contain breaking changes, and they are always described below.
 
 ### Added
 
-- `eng::SdlSession`: an explicit, reference-counted SDL lifecycle in
+- Peridot Engine brand kit: faceted line-art logo and outlined wordmarks, palette,
+  usage guidance and Manrope 4.505 under the SIL OFL 1.1; see `brand/`.
+- `peri::SdlSession`: an explicit, reference-counted SDL lifecycle in
   `engine/platform`. The first acquire initialises video and gamepads, the last
   release closes devices and calls `SDL_Quit`; `App` owns one, and
   `Window::create` now requires an active session. Replaces lazy `call_once`
   initialisation that was never undone.
 - Windows CRT leak gate in both test executables: blocks allocated during a run
   that are still live at the end fail the suite and are dumped to stderr.
-- glad 2.0.8 as the pinned OpenGL 3.3 core loader (`eng::gl_loader`), generated
+- glad 2.0.8 as the pinned OpenGL 3.3 core loader (`peri::gl_loader`), generated
   once and vendored; see ADR-0010. Nothing links it until the M2 renderer.
 - MIT license, selected in `QA.md`.
 - Fixed-capacity named digital action bindings for keyboard, mouse and gamepad;
@@ -26,20 +28,34 @@ releases may contain breaking changes, and they are always described below.
   readout by itself.
 - Planning notes for optional Steam and GOG integrations without introducing SDKs.
 - SDL 3.4.20 pinned by URL and SHA-256 and built statically inside `engine/platform`.
-- `eng_platform`:
+- `peri_platform`:
   - window creation, OS event pump, resize/focus/minimize/fullscreen handling;
   - engine-owned keyboard, mouse and gamepad state with pressed/released edges;
   - fixed-step application loop with catch-up cap, interpolation alpha, optional
     FPS limiter and per-frame CSV logging;
   - UTF-8 file helpers with atomic replace, directory creation and executable
     directory lookup.
-- Fixed-step timing utilities in `eng_core`.
+- Fixed-step timing utilities in `peri_core`.
 - `bench_blank` benchmark driver with warm-up, sample cap, pacing/unlimited modes
   and process-memory reporting.
 - Platform test suite (window, file system, app loop).
 
 ### Changed
 
+- **Breaking rename:** `eng::` becomes `peri::`, includes `eng/…` become
+  `peri/…`, `eng_*` CMake targets/test executables become `peri_*`, aliases
+  `eng::…` become `peri::…`, and `ENG_*` / `ENGINE_VERSION_*` macros and
+  CMake options become `PERI_*` / `PERI_VERSION_*`. Update downstream code and
+  scripts. Old CMake cache options are not migrated: run
+  `cmake --fresh --preset <preset>` and reapply any custom overrides under
+  their new names (for example, `-DPERI_SANITIZE=ON`). Existing build directories may
+  also contain old generated headers and binaries; use a new build directory
+  if those stale artifacts would cause confusion. Old aliases are not retained.
+  The next 0.x minor release must carry this migration note. No stable
+  `engine/public/` or `engine/c_api/` API exists yet (ADR-0007/0011).
+- The default window title is `Peridot Engine`; the CMake project name is
+  `peridot_engine`. The `engine/` source directory and existing repository URL
+  do not change.
 - `bench_blank` reports elapsed frame intervals and, on Linux, main-thread CPU
   time using bounded histograms covering all measured frames. Linux CSV adds
   `cpu_ms`. Windows reports F1 CPU p99 unavailable and omits CPU samples from

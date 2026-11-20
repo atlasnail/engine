@@ -1,4 +1,4 @@
-add_executable(eng_tests
+add_executable(peri_tests
     main_core.cpp
     test_main.cpp
     test_fixed_step.cpp
@@ -10,15 +10,15 @@ add_executable(eng_tests
     test_version.cpp
 )
 
-target_link_libraries(eng_tests PRIVATE eng::core)
-target_include_directories(eng_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(peri_tests PRIVATE peri::core)
+target_include_directories(peri_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
-eng_apply_warnings(eng_tests)
+peri_apply_warnings(peri_tests)
 
-add_test(NAME eng_tests COMMAND eng_tests)
-set_tests_properties(eng_tests PROPERTIES TIMEOUT 60 LABELS "unit")
+add_test(NAME peri_tests COMMAND peri_tests)
+set_tests_properties(peri_tests PROPERTIES TIMEOUT 60 LABELS "unit")
 
-add_executable(eng_platform_tests
+add_executable(peri_platform_tests
     test_main.cpp
     platform/main_platform.cpp
     platform/test_app.cpp
@@ -29,10 +29,10 @@ add_executable(eng_platform_tests
     platform/test_window.cpp
 )
 
-target_link_libraries(eng_platform_tests PRIVATE eng::platform SDL3::SDL3-static)
-target_include_directories(eng_platform_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(peri_platform_tests PRIVATE peri::platform SDL3::SDL3-static)
+target_include_directories(peri_platform_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
-eng_apply_warnings(eng_platform_tests)
+peri_apply_warnings(peri_platform_tests)
 
-add_test(NAME eng_platform_tests COMMAND eng_platform_tests)
-set_tests_properties(eng_platform_tests PROPERTIES TIMEOUT 60 LABELS "unit;platform")
+add_test(NAME peri_platform_tests COMMAND peri_platform_tests)
+set_tests_properties(peri_platform_tests PROPERTIES TIMEOUT 60 LABELS "unit;platform")

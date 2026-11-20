@@ -1,8 +1,8 @@
-#include "eng/core/time.hpp"
+#include "peri/core/time.hpp"
 
 #include <chrono>
 
-namespace eng::time {
+namespace peri::time {
 
 double now_seconds() noexcept {
     // The epoch is initialized on the first call, *before* `now` is read. Do
@@ -25,4 +25,4 @@ double Stopwatch::elapsed_seconds() const noexcept {
     return now_seconds() - started_;
 }
 
-}  // namespace eng::time
+}  // namespace peri::time

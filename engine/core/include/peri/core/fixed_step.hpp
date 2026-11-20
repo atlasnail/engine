@@ -15,10 +15,10 @@
 //     dropped and counted, never allowed to spiral.
 //   - alpha() is the fraction of the next step already elapsed, in [0, 1).
 
-#include "eng/core/assert.hpp"
-#include "eng/core/types.hpp"
+#include "peri/core/assert.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng {
+namespace peri {
 
 class FixedTimestep {
 public:
@@ -29,8 +29,8 @@ public:
     explicit FixedTimestep(double step_seconds = k_default_step_seconds,
                            int max_steps_per_frame = k_default_max_steps_per_frame) noexcept
         : step_seconds_(step_seconds), max_steps_per_frame_(max_steps_per_frame) {
-        ENG_ASSERT(step_seconds_ > 0.0);
-        ENG_ASSERT(max_steps_per_frame_ > 0);
+        PERI_ASSERT(step_seconds_ > 0.0);
+        PERI_ASSERT(max_steps_per_frame_ > 0);
         if (!(step_seconds_ > 0.0)) {
             step_seconds_ = k_default_step_seconds;
         }
@@ -93,4 +93,4 @@ private:
     u64 dropped_steps_ = 0;
 };
 
-}  // namespace eng
+}  // namespace peri

@@ -103,7 +103,7 @@
       "displayName": "Linux Debug (ASan + UBSan)",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ENG_SANITIZE": "ON"
+        "PERI_SANITIZE": "ON"
       }
     }
   ],

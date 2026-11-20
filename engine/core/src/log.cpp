@@ -1,13 +1,13 @@
-#include "eng/core/log.hpp"
+#include "peri/core/log.hpp"
 
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <mutex>
 
-#include "eng/core/time.hpp"
+#include "peri/core/time.hpp"
 
-namespace eng {
+namespace peri {
 namespace {
 
 struct SinkState {
@@ -106,4 +106,4 @@ const char* log_level_name(LogLevel level) noexcept {
     return "info";
 }
 
-}  // namespace eng
+}  // namespace peri

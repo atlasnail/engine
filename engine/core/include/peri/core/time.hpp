@@ -7,7 +7,7 @@
 // seconds since an unspecified, process-local epoch and is only meaningful for
 // differences.
 
-namespace eng::time {
+namespace peri::time {
 
 [[nodiscard]] double now_seconds() noexcept;
 
@@ -24,4 +24,4 @@ private:
     double started_ = 0.0;
 };
 
-}  // namespace eng::time
+}  // namespace peri::time

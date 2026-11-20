@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title"><title id="title">Peridot Engine faceted gem mark</title><g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M64 8 L102 26 L120 64 L102 102 L64 120 L26 102 L8 64 L26 26 Z"/>
+<path d="M64 29 L88 40 L99 64 L88 88 L64 99 L40 88 L29 64 L40 40 Z"/>
+<path d="M64 8 V29 M102 26 L88 40 M120 64 H99 M102 102 L88 88 M64 120 V99 M26 102 L40 88 M8 64 H29 M26 26 L40 40"/>
+<path d="M40 40 L64 64 L88 40 M29 64 L64 64 L99 64 M40 88 L64 64 L88 88 M64 29 V99"/></g></svg>

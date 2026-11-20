@@ -17,9 +17,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "eng/core/types.hpp"
+#include "peri/core/types.hpp"
 
-namespace eng {
+namespace peri {
 
 enum class ErrorCode : u8 {
     none = 0,
@@ -188,4 +188,4 @@ private:
 template <typename T>
 Result(T) -> Result<T>;
 
-}  // namespace eng
+}  // namespace peri

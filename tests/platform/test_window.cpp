@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-#include "eng/platform/window.hpp"
+#include "peri/platform/window.hpp"
 
 namespace {
 
@@ -30,17 +30,17 @@ bool using_dummy_driver() {
 }  // namespace
 
 TEST_CASE(window_rejects_invalid_size) {
-    eng::WindowConfig config;
+    peri::WindowConfig config;
     config.width = 0;
     config.height = 100;
 
-    const eng::Result<std::unique_ptr<eng::Window>> window = eng::Window::create(config);
+    const peri::Result<std::unique_ptr<peri::Window>> window = peri::Window::create(config);
     CHECK(window.is_error());
-    CHECK(window.error().code == eng::ErrorCode::invalid_argument);
+    CHECK(window.error().code == peri::ErrorCode::invalid_argument);
 }
 
 TEST_CASE(window_create_pump_and_close) {
-    eng::WindowConfig config;
+    peri::WindowConfig config;
     config.title = "engine window test";
     config.width = 320;
     config.height = 240;
@@ -48,15 +48,15 @@ TEST_CASE(window_create_pump_and_close) {
     config.resizable = false;
     config.vsync = false;
 
-    eng::Result<std::unique_ptr<eng::Window>> result = eng::Window::create(config);
+    peri::Result<std::unique_ptr<peri::Window>> result = peri::Window::create(config);
     if (result.is_error()) {
         SKIP_TEST("video driver unavailable");
     }
 
-    std::unique_ptr<eng::Window> window = std::move(result.value());
+    std::unique_ptr<peri::Window> window = std::move(result.value());
     REQUIRE(window != nullptr);
 
-    eng::InputState input;
+    peri::InputState input;
     for (int frame = 0; frame < 3; ++frame) {
         window->pump_events(input);
     }
@@ -66,8 +66,8 @@ TEST_CASE(window_create_pump_and_close) {
     // The dummy driver used on headless CI does not guarantee real sizes.
     const bool dummy_driver = using_dummy_driver();
 
-    const eng::IVec2 size_points = window->size_points();
-    const eng::IVec2 size_pixels = window->size_pixels();
+    const peri::IVec2 size_points = window->size_points();
+    const peri::IVec2 size_pixels = window->size_pixels();
     if (!dummy_driver) {
         CHECK(size_points.x > 0);
         CHECK(size_points.y > 0);
@@ -79,7 +79,7 @@ TEST_CASE(window_create_pump_and_close) {
     // No keys are held in a headless test, so repeated pumping must not leave
     // pressed edges behind.
     window->pump_events(input);
-    CHECK(!input.key_pressed(eng::Key::space));
+    CHECK(!input.key_pressed(peri::Key::space));
 
     window->set_title("engine window test (renamed)");
     window->request_close();
