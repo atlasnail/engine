@@ -20,6 +20,34 @@ Last updated: 2026-11-20
   run and passes; it uses SDL's dummy video driver, so no real display, GPU or
   gamepad has been exercised on Linux.
 
+## Latest session: benchmark CPU instrumentation (M1 gate still open)
+
+- `bench_blank` opts into main-thread CPU accounting around the event pump,
+  fixed updates, render and optional stats display. The limiter, observer and
+  CSV writes, other threads and GPU work are excluded. Linux uses
+  `CLOCK_THREAD_CPUTIME_ID`; Windows uses `GetThreadTimes`. Clock failures stop
+  the run. The optional CSV adds `cpu_ms` and includes warm-up frames.
+- Two fixed-size 1 µs-bucket histograms cover every measured frame, with an
+  overflow bucket at 100 ms; the first-200,000-frame truncation is gone. Clock
+  overhead and histogram updates affect the benchmark. Detailed scope and
+  quantization limits are in `docs/performance.md`.
+- Windows 11 26200, `dev-01` (Ryzen 9 9950X3D, RX 9070 XT, 32 GB), MSVC
+  19.52 Release, hidden 1280×720, overlay off: before instrumentation,
+  `bench_blank.exe --seconds 5 --warmup 1` gave 295 samples, interval p99
+  17.253 ms and 4.5 MB exit private bytes; `--seconds 3 --warmup 1 --no-limit`
+  gave 200,000 capped samples and 8.4 MB. After instrumentation, paced with
+  `--csv build/windows-release/cpu-after.csv` gave 294 samples, interval p99
+  17.233 ms, CPU p99 0.000 ms and 6.5 MB; unlimited gave 5,744,481 samples,
+  interval p99 0.000 ms, CPU p99 0.000 ms, CPU maximum 15.625 ms and 6.2 MB.
+  CSV logging differs between the paced runs. These single short developer runs
+  are not a regression assessment, a Tier A run, or F1 evidence: Windows
+  CPU accounting was visibly quantized and per-frame p99 is misleading.
+- Windows Debug and Release builds/CTest pass, including a sleep-versus-CPU
+  test. Formatting passed; clang-tidy passed with locally available 22.1.3,
+  not CI's pinned 22.1.8. Linux build/tests and its CPU clock remain unverified
+  for these changes. A finer validated Windows measurement and Tier A runs
+  remain necessary; do not close the measurement or performance gate.
+
 ## Latest session: minimized-window work (M1 gate still open)
 
 - The application loop pauses updates, rendering and presentation while the
@@ -142,8 +170,8 @@ Last updated: 2026-11-20
   disabled): `dev-01` paced p99 17.491 ms, 58.9 FPS, 0 dropped steps, 4.5 MB
   exit private bytes. One short run, not a gate; see
   `benchmarks/results/2026-11-19-bench-blank-review-win-x64-dev01.md`.
-- `bench_blank` measures elapsed frame-start intervals, not isolated CPU time,
-  and its unlimited run samples only the first 200,000 frames. F1 is unverified.
+- Earlier benchmark records use elapsed frame-start intervals and the former
+  first-200,000-sample cap; they do not establish F1.
 
 ## Open gates and known limitations
 
@@ -173,8 +201,9 @@ Last updated: 2026-11-20
    no comprehensive allocation audit was done. CSV logging uses a stream.
 7. Atomic replacement is not power-loss durable: file and directory sync are
    not implemented. A single writer per path is assumed.
-8. Tier A hardware and the 60-second gate are unavailable. Rework CPU timing and
-   sampling before claiming F1.
+8. Tier A hardware and the 60-second gate are unavailable. Windows' current
+   per-thread CPU accounting is too coarse for short frames; Linux's new clock
+   is not yet verified. Neither platform can claim F1 on current evidence.
 9. `Result<T>` error messages are non-owning. Existing code may still allow
    allocation/standard-library exceptions across boundaries.
 

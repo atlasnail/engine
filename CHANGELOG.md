@@ -40,6 +40,10 @@ releases may contain breaking changes, and they are always described below.
 
 ### Changed
 
+- `bench_blank` reports opt-in main-thread CPU time and elapsed frame intervals
+  separately using bounded histograms covering all measured frames; its CSV
+  adds `cpu_ms`. Windows CPU accounting is too coarse for reliable short-frame
+  percentiles on the observed system, so the F1 gate remains open.
 - The first CMake configure now downloads SDL; offline builds reuse
   `build/<preset>/_deps/`.
 - clang-tidy is a blocking CI check over all engine sources, pinned to 22.1.8

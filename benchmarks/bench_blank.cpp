@@ -1,6 +1,5 @@
 // bench_blank: measures the cost of an empty frame (no rendering, no game
-// logic). It observes frame-start intervals and pacing, not isolated CPU time;
-// it cannot establish the F1 CPU gate.
+// logic). Reports main-thread CPU work separately from elapsed frame intervals.
 //
 // Usage:
 //   bench_blank [--seconds N] [--warmup N] [--visible] [--overlay] [--csv PATH] [--no-limit]
@@ -8,13 +7,14 @@
 // Output is a summary on stdout; the optional CSV has one row per frame.
 // Measurement rules live in docs/performance.md.
 
-#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include "eng/platform/app.hpp"
 
@@ -61,13 +61,59 @@ double process_memory_mb() {
 #endif
 }
 
-double percentile_sorted(const std::vector<double>& sorted, double fraction) {
-    if (sorted.empty()) {
-        return 0.0;
+// 1 us buckets through 100 ms, plus an overflow bucket. Every measured frame
+// contributes, with fixed memory and no per-frame allocation.
+struct Histogram {
+    static constexpr std::size_t k_bins = 100'000;
+    std::array<std::uint64_t, k_bins + 1> bins{};
+    std::uint64_t count = 0;
+    double sum = 0.0;
+    double minimum = 0.0;
+    double maximum = 0.0;
+
+    void add(double milliseconds) {
+        const auto bin =
+            milliseconds >= 100.0 ? k_bins : static_cast<std::size_t>(milliseconds * 1000.0);
+        ++bins[bin];
+        if (count == 0 || milliseconds < minimum) {
+            minimum = milliseconds;
+        }
+        if (count == 0 || milliseconds > maximum) {
+            maximum = milliseconds;
+        }
+        ++count;
+        sum += milliseconds;
     }
-    const double index = fraction * static_cast<double>(sorted.size() - 1);
-    return sorted[static_cast<std::size_t>(index)];
-}
+
+    [[nodiscard]] std::size_t percentile_bin(double fraction) const {
+        const auto rank = static_cast<std::uint64_t>(fraction * static_cast<double>(count - 1));
+        std::uint64_t seen = 0;
+        for (std::size_t i = 0; i <= k_bins; ++i) {
+            seen += bins[i];
+            if (seen > rank) {
+                return i;
+            }
+        }
+        return k_bins;
+    }
+
+    void print(const char* name) const {
+        const auto print_percentile = [](std::size_t bin) {
+            if (bin == k_bins) {
+                std::printf(">=100.000");
+            } else {
+                std::printf("%.3f", static_cast<double>(bin) / 1000.0);
+            }
+        };
+        std::printf("%s ms: p50 ", name);
+        print_percentile(percentile_bin(0.50));
+        std::printf("  p99 ");
+        print_percentile(percentile_bin(0.99));
+        std::printf("  min %.6f  max %.6f  avg %.6f  overflow %llu\n", minimum, maximum,
+                    sum / static_cast<double>(count),
+                    static_cast<unsigned long long>(bins[k_bins]));
+    }
+};
 
 }  // namespace
 
@@ -100,8 +146,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (seconds <= 0.0 || warmup_seconds < 0.0) {
-        std::printf("seconds must be positive and warmup non-negative\n");
+    if (!std::isfinite(seconds) || !std::isfinite(warmup_seconds) || seconds <= 0.0 ||
+        warmup_seconds < 0.0) {
+        std::printf("seconds must be finite and positive; warmup finite and non-negative\n");
         return 2;
     }
 
@@ -115,6 +162,7 @@ int main(int argc, char** argv) {
     config.target_fps = 60.0;
     config.frame_log_path = csv_path;
     config.frame_stats_overlay = overlay;
+    config.measure_frame_cpu = true;
 
     eng::Result<std::unique_ptr<eng::App>> app_result = eng::App::create(config);
     if (app_result.is_error()) {
@@ -125,59 +173,56 @@ int main(int argc, char** argv) {
     std::unique_ptr<eng::App> app = std::move(app_result.value());
     eng::App* app_ptr = app.get();
 
-    // Sample cap keeps an unlimited-throughput run from using tens of MB of
-    // benchmark memory; later frames are not sampled once the cap is reached.
-    constexpr std::size_t k_sample_cap = 200'000;
-    std::vector<double> frame_ms;
-    frame_ms.reserve(
-        std::min<std::size_t>(k_sample_cap, static_cast<std::size_t>(seconds * 240.0) + 1024));
+    auto frame_ms = std::make_unique<Histogram>();
+    auto cpu_ms = std::make_unique<Histogram>();
     double warmup_elapsed = 0.0;
     double measured_elapsed = 0.0;
 
     const int exit_code = app->run([](double) {}, [](double) {},
-                                   [&frame_ms, &warmup_elapsed, &measured_elapsed, app_ptr, seconds,
-                                    warmup_seconds](const eng::FrameInfo& info) {
+                                   [&frame_ms, &cpu_ms, &warmup_elapsed, &measured_elapsed, app_ptr,
+                                    seconds, warmup_seconds](const eng::FrameInfo& info) {
                                        if (warmup_elapsed < warmup_seconds) {
                                            warmup_elapsed += info.frame_seconds;
                                            return;
                                        }
-                                       if (frame_ms.size() < k_sample_cap) {
-                                           frame_ms.push_back(info.frame_seconds * 1000.0);
-                                       }
+                                       frame_ms->add(info.frame_seconds * 1000.0);
+                                       cpu_ms->add(info.cpu_seconds * 1000.0);
                                        measured_elapsed += info.frame_seconds;
                                        if (measured_elapsed >= seconds) {
                                            app_ptr->quit();
                                        }
                                    });
 
-    if (frame_ms.empty()) {
+    if (exit_code != 0) {
+        std::printf("benchmark failed; results discarded\n");
+        return exit_code;
+    }
+    if (frame_ms->count == 0) {
         std::printf("no frames recorded\n");
         return 1;
     }
 
-    std::vector<double> sorted = frame_ms;
-    std::sort(sorted.begin(), sorted.end());
-
-    double total_ms = 0.0;
-    for (const double value : frame_ms) {
-        total_ms += value;
-    }
-    const double average_ms = total_ms / static_cast<double>(frame_ms.size());
-
     std::printf("bench_blank: %.2f s measured after %.2f s warmup; %llu frames total, "
-                "%zu sampled\n",
+                "%llu measured\n",
                 measured_elapsed, warmup_seconds,
-                static_cast<unsigned long long>(app->frame_count()), frame_ms.size());
+                static_cast<unsigned long long>(app->frame_count()),
+                static_cast<unsigned long long>(frame_ms->count));
     if (limit) {
         std::printf("rate: %.1f fps (target 60)\n",
-                    measured_elapsed > 0.0 ? static_cast<double>(frame_ms.size()) / measured_elapsed
+                    measured_elapsed > 0.0 ? static_cast<double>(frame_ms->count) / measured_elapsed
                                            : 0.0);
     } else {
-        std::printf("rate: unlimited (measurement samples capped at %zu)\n", frame_ms.size());
+        std::printf("rate: unlimited\n");
     }
-    std::printf("frame ms: p50 %.3f  p99 %.3f  min %.3f  max %.3f  avg %.3f\n",
-                percentile_sorted(sorted, 0.50), percentile_sorted(sorted, 0.99), sorted.front(),
-                sorted.back(), average_ms);
+    std::printf("percentiles: 1 us buckets, lower edge; overflow >=100 ms\n");
+    frame_ms->print("frame interval");
+    cpu_ms->print("main-thread CPU");
+#if defined(_WIN32)
+    std::printf("CPU clock: GetThreadTimes; scheduling-granularity accounting can quantize "
+                "short frames; p99 may be misleading\n");
+#else
+    std::printf("CPU clock: CLOCK_THREAD_CPUTIME_ID; main thread only\n");
+#endif
     std::printf("dropped fixed steps: %llu\n",
                 static_cast<unsigned long long>(app->dropped_steps()));
     std::printf("private memory at exit: %.1f MB\n", process_memory_mb());

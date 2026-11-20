@@ -67,6 +67,35 @@ TEST_CASE(app_runs_frames_until_quit) {
     (void)updates;
 }
 
+TEST_CASE(app_frame_cpu_excludes_sleep) {
+    eng::AppConfig config;
+    config.window.hidden = true;
+    config.limit_frames = false;
+    config.measure_frame_cpu = true;
+    auto result = eng::App::create(config);
+    REQUIRE(result.is_ok());
+    auto app = std::move(result.value());
+    double cpu_seconds = -1.0;
+    const auto start = std::chrono::steady_clock::now();
+    const int code = app->run([](double) {},
+                              [](double) {
+                                  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                                  const auto until = std::chrono::steady_clock::now() +
+                                                     std::chrono::milliseconds(120);
+                                  while (std::chrono::steady_clock::now() < until) {
+                                  }
+                              },
+                              [&app, &cpu_seconds](const eng::FrameInfo& info) {
+                                  cpu_seconds = info.cpu_seconds;
+                                  app->quit();
+                              });
+    const double wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    CHECK(code == 0);
+    CHECK(cpu_seconds > 0.01);
+    CHECK(cpu_seconds < wall_seconds - 0.08);
+}
+
 TEST_CASE(app_pauses_zero_size_until_restored) {
     eng::AppConfig config;
     config.window.hidden = true;

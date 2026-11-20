@@ -6,6 +6,18 @@
 #include <fstream>
 #include <limits>
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
+#include <time.h>
+#endif
+
 #include <SDL3/SDL.h>
 
 #include "eng/core/assert.hpp"
@@ -16,6 +28,32 @@
 #include "input_access.hpp"
 
 namespace eng {
+
+namespace {
+
+// Thread CPU time excludes descheduling and sleeps, unlike a steady clock.
+bool thread_cpu_seconds(double& seconds) noexcept {
+#if defined(_WIN32)
+    FILETIME creation{}, exit{}, kernel{}, user{};
+    if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user) == 0) {
+        return false;
+    }
+    const auto ticks = [](const FILETIME& value) {
+        return (static_cast<unsigned long long>(value.dwHighDateTime) << 32U) |
+               static_cast<unsigned long long>(value.dwLowDateTime);
+    };
+    seconds = static_cast<double>(ticks(kernel) + ticks(user)) * 1e-7;
+#else
+    timespec value{};
+    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &value) != 0) {
+        return false;
+    }
+    seconds = static_cast<double>(value.tv_sec) + static_cast<double>(value.tv_nsec) * 1e-9;
+#endif
+    return true;
+}
+
+}  // namespace
 
 App::App(std::unique_ptr<SdlSession> session, std::unique_ptr<Window> window,
          const AppConfig& config) noexcept
@@ -91,7 +129,11 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
     if (config_.frame_log_path != nullptr) {
         frame_log.open(config_.frame_log_path, std::ios::trunc);
         if (frame_log) {
-            frame_log << "frame,frame_ms,update_ms,fixed_steps\n";
+            frame_log << "frame,frame_ms,update_ms,fixed_steps";
+            if (config_.measure_frame_cpu) {
+                frame_log << ",cpu_ms";
+            }
+            frame_log << '\n';
         } else {
             ENG_LOG_WARN("app", "could not open frame log %s", config_.frame_log_path);
         }
@@ -105,6 +147,11 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
     bool paused_for_minimize = false;
 
     while (!window_->should_close() && !quit_requested_) {
+        double cpu_start = 0.0;
+        if (config_.measure_frame_cpu && !thread_cpu_seconds(cpu_start)) {
+            ENG_LOG_ERROR("app", "could not read frame CPU clock at start");
+            return 1;
+        }
         window_->pump_events(input_);
         const bool minimized = window_->is_minimized();
         if (minimized || paused_for_minimize) {
@@ -188,13 +235,26 @@ int App::run(const UpdateFn& fixed_update, const RenderFn& render, const FrameOb
             }
         }
 
+        double cpu_seconds = 0.0;
+        if (config_.measure_frame_cpu) {
+            double cpu_end = 0.0;
+            if (!thread_cpu_seconds(cpu_end) || cpu_end < cpu_start) {
+                ENG_LOG_ERROR("app", "could not read frame CPU clock at end");
+                return 1;
+            }
+            cpu_seconds = cpu_end - cpu_start;
+        }
         if (observer) {
-            observer(FrameInfo{frame_seconds, update_seconds, steps});
+            observer(FrameInfo{frame_seconds, update_seconds, steps, cpu_seconds});
         }
 
         if (frame_log) {
             frame_log << frame_count_ << ',' << frame_seconds * 1000.0 << ','
-                      << update_seconds * 1000.0 << ',' << steps << '\n';
+                      << update_seconds * 1000.0 << ',' << steps;
+            if (config_.measure_frame_cpu) {
+                frame_log << ',' << cpu_seconds * 1000.0;
+            }
+            frame_log << '\n';
         }
 
         ++frame_count_;

@@ -71,7 +71,15 @@ Targets are ceilings for the engine on Tier A. A game with heavier content can e
 
 ## 4. Benchmark suite
 
-Each benchmark is planned as a separate driver under `benchmarks/`. Only `bench_blank` exists so far. Its elapsed frame-start intervals are not isolated CPU measurements; F1 remains unverified, and its fixed sample cap may omit most frames in an unlimited run.
+Each benchmark is planned as a separate driver under `benchmarks/`. Only `bench_blank` exists so far. It reports main-thread CPU work separately from elapsed frame-start intervals. F1 remains unverified: Windows CPU accounting is too coarse for individual short frames in the observed run, Linux has not yet run the new measurement, and the Tier A protocol has not been run.
+
+`bench_blank` accounts for each measured frame using fixed 1 µs histogram buckets
+up to 100 ms and an overflow bucket, without retaining individual samples.
+Percentiles are the lower bucket edge, or `>=100 ms` for overflow; min, max and
+average use the actual samples. Warm-up frames are excluded from the summary.
+The optional CSV includes warm-up and has `cpu_ms` in addition to the existing
+frame interval, update elapsed time and fixed-step fields. File logging and the
+overlay affect the measurement; disable both for the empty-frame CPU baseline.
 
 | Benchmark | What it does | Metrics |
 | --- | --- | --- |
@@ -92,8 +100,8 @@ Rules for adding a benchmark: deterministic content, fixed seed, no network, no 
 
 | Metric | How |
 | --- | --- |
-| CPU frame time | Engine frame timer around the main loop, plus per-phase timers (events, fixed update, render submit, present). p50/p99/min/max over the run. |
-| Frame pacing | Timestamps at present; compute deviation from target period. |
+| CPU frame time | `bench_blank` opts into main-thread CPU clock reads around event processing, fixed update, render and optional stats display. It excludes frame limiting, the observer and CSV writes, other threads and GPU work. Windows uses `GetThreadTimes`, Linux `CLOCK_THREAD_CPUTIME_ID`; clock read overhead is included in part. Windows accounting may be quantized to scheduler intervals, making per-frame p99 misleading; a finer validated method is needed before the Windows F1 gate. Per-phase CPU timers are not implemented. |
+| Frame pacing | `bench_blank` currently reports elapsed frame-start intervals, not present timestamps; F6/F7 are not established by its summary. |
 | Draw calls / batches | Renderer counters, asserted by the sprites benchmark. |
 | Allocations | Tracking allocator: count, bytes, per-subsystem tags; frame-loop counter must be 0 in Release (compile-time-disabled tracking in shipping). |
 | Private memory | Windows: `GetProcessMemoryInfo` private working set. Linux: `/proc/self/statm` RSS. Peak via polling at 100 ms; also `heaptrack`/VMMap for investigation. |

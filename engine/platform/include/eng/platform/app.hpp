@@ -33,12 +33,16 @@ struct AppConfig {
     // callback is passed to run(). Passing a StatsDisplay callback enables the
     // readout by itself, so this flag never has to agree with it. Off by default.
     bool frame_stats_overlay = false;
+    // Opt in to main-thread CPU accounting around event, update and render work.
+    bool measure_frame_cpu = false;
 };
 
 struct FrameInfo {
     double frame_seconds = 0.0;
     double update_seconds = 0.0;
     int fixed_steps = 0;
+    // Main-thread CPU time for this frame; zero when accounting is disabled.
+    double cpu_seconds = 0.0;
 };
 
 class App {
@@ -70,7 +74,7 @@ public:
     void quit() noexcept { quit_requested_ = true; }
 
     // Runs until the window closes or quit() is called. Can only be called once;
-    // returns 0 on a normal exit, nonzero on input overflow or display failure.
+    // returns 0 on a normal exit, nonzero on input, display or CPU clock failure.
     // Passing a display callback enables the frame readout even when
     // frame_stats_overlay is false. In that mode the render callback must draw
     // without presenting; the display callback draws the text and presents.
