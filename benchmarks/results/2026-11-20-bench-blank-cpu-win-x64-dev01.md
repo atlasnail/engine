@@ -26,7 +26,12 @@
   interpreting them as a controlled performance comparison.
 - The focused `ctest --preset windows-release -R bench_blank_output` passed for
   paced and unlimited dummy-driver runs, checking CPU p99 is unavailable and
-  the Windows CSV has no CPU column. Linux behavior awaits CI.
+  the Windows CSV has no CPU column. CI run
+  [44765609894](https://github.com/atlasnail/engine/actions/runs/44765609894)
+  on `980aad1` passed Linux Debug, ASan+UBSan and Release CTest using SDL's
+  dummy driver. The benchmark output test is registered by default and the
+  CI runs unfiltered CTest; individual test log lines were not accessible, so
+  execution of that test is inferred rather than directly inspected.
 
 ## Exploratory cycle probe
 

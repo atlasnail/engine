@@ -30,8 +30,8 @@ Last updated: 2026-11-20
 - Windows MSVC 19.52 Release build and `ctest --preset windows-release -R
   bench_blank_output` passed. The new output test exercises paced and unlimited
   runs using SDL's dummy driver and checks the summary and CSV columns. The
-  formatting check passed. Linux has not run these changes locally; CI must
-  verify the Linux branch. No F1 or M1 gate is closed.
+  formatting check passed. Linux has not run these changes locally; see the CI
+  result below. No F1 or M1 gate is closed.
 - Developer measurement: Windows 11 26200, `dev-01` (Ryzen 9 9950X3D, RX
   9070 XT, 32 GB), MSVC 19.52 Release, hidden window, overlay and CSV off.
   `build/windows-release/bin/bench_blank.exe --seconds 5 --warmup 1` reported
@@ -178,6 +178,15 @@ Last updated: 2026-11-20
 
 ## Verification
 
+- **CI on `980aad1` passed** ([run 44765609894](https://github.com/atlasnail/engine/actions/runs/44765609894)):
+  Linux GCC Debug, ASan+UBSan and Release builds and CTest, formatting, and
+  blocking clang-tidy passed; Windows MSVC Debug and Release builds, CTest and
+  formatting passed. The workflow invokes unfiltered CTest in all configurations;
+  `bench_blank_output` is registered by default and tests paced/unlimited
+  summaries and CSV on SDL's dummy driver. The individual CTest log lines were
+  not accessible, so their execution is inferred from the registration and
+  successful CTest steps, not directly inspected. This is headless verification,
+  not Linux desktop, hardware parity or Tier A/F1 evidence. No fix was needed.
 - **CI on `f067dbb` passed** (run `44760210247`): Linux GCC Debug,
   ASan+UBSan and Release builds/tests, formatting and blocking clang-tidy all
   passed; Windows MSVC Debug and Release builds/tests and formatting passed.
